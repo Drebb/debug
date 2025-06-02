@@ -1,0 +1,16 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Using toast
+npx shadcn@latest add sonner
+Add the Toaster component
+
+```
+Usage
+
+import { toast } from "sonner"
+toast("Event has been created.")
+```
+

@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Always Use Shad cn ui for the components as much as possible its under src/app/components/ui/
+
+
+Always use npx shadcn@latest add select not npx shadcn-ui@latest add select when adding shad ui components

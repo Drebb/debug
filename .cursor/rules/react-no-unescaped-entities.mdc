@@ -1,0 +1,70 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+ # React No Unescaped Entities Rule
+
+This rule helps prevent build errors related to unescaped entities in JSX. React requires certain characters to be properly escaped in JSX to avoid syntax errors and ensure proper rendering.
+
+## Common Issues
+
+The following characters need to be escaped in JSX:
+- `'` (single quote) → `&apos;` or `&#39;`
+- `"` (double quote) → `&quot;` or `&#34;`
+- `>` (greater than) → `&gt;` or `&#62;`
+- `<` (less than) → `&lt;` or `&#60;`
+- `&` (ampersand) → `&amp;` or `&#38;`
+
+## Examples
+
+```jsx
+// ❌ Bad - Will cause build errors
+<div>Don't use straight quotes</div>
+<div>He said "Hello"</div>
+
+// ✅ Good - Properly escaped entities
+<div>Don&apos;t use straight quotes</div>
+<div>He said &quot;Hello&quot;</div>
+
+// ✅ Also Good - Using template literals or concatenation
+<div>{`Don't use straight quotes`}</div>
+<div>{'He said "Hello"'}</div>
+```
+
+## Best Practices
+
+1. Always escape special characters in JSX text content
+2. Use HTML entities (`&apos;`, `&quot;`, etc.) for better readability
+3. Alternatively, use template literals or string concatenation for text with quotes
+4. For dynamic content, you can use JavaScript expressions which don't require escaping
+
+## Common Patterns
+
+```jsx
+// For apostrophes in contractions
+<div>I&apos;m using apostrophes correctly</div>
+
+// For quotations
+<div>&quot;This is a quote&quot;</div>
+
+// For nested quotes
+<div>&quot;He said &apos;Hello&apos; to me&quot;</div>
+
+// Using JavaScript expressions (no escaping needed)
+<div>{"I'm using apostrophes correctly"}</div>
+<div>{`"This is a quote"`}</div>
+```
+
+## Error Messages
+
+If you see this error:
+```
+Error: React Error: Invalid DOM property `'`. Did you mean `&#39;`?
+```
+or
+```
+Warning: Invalid character reference: &acute
+```
+
+Replace the unescaped character with its corresponding HTML entity or use JavaScript expressions.
