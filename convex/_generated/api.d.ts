@@ -13,6 +13,11 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as analytics from "../analytics.js";
+import type * as captureLimits from "../captureLimits.js";
+import type * as events from "../events.js";
+import type * as gallery from "../gallery.js";
+import type * as guests from "../guests.js";
 import type * as http from "../http.js";
 import type * as users from "../users.js";
 
@@ -25,6 +30,11 @@ import type * as users from "../users.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  analytics: typeof analytics;
+  captureLimits: typeof captureLimits;
+  events: typeof events;
+  gallery: typeof gallery;
+  guests: typeof guests;
   http: typeof http;
   users: typeof users;
 }>;

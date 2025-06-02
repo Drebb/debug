@@ -23,28 +23,41 @@ import {
    *
    * Like all Convex queries, errors on expired Clerk token.
    */
-  export const userLoginStatus = query(
-    async (
-      ctx
-    ): Promise<
-      | ["No JWT Token", null]
-      | ["No Clerk User", null]
-      | ["Logged In", Doc<"users">]
-> => {
+  export const userLoginStatus = query({
+    args: {},
+    returns: v.object({
+      status: v.union(
+        v.literal("No JWT Token"),
+        v.literal("No Clerk User"),
+        v.literal("Logged In")
+      ),
+      user: v.union(
+        v.null(),
+        v.object({
+          _id: v.id("users"),
+          _creationTime: v.number(),
+          email: v.string(),
+          first_name: v.optional(v.string()),
+          last_name: v.optional(v.string()),
+          clerkUser: v.any(),
+        })
+      ),
+    }),
+    handler: async (ctx) => {
       const identity = await ctx.auth.getUserIdentity();
       if (!identity) {
         // no JWT token, user hasn't completed login flow yet
-        return ["No JWT Token", null];
+        return { status: "No JWT Token" as const, user: null };
       }
       const user = await getCurrentUser(ctx);
       if (user === null) {
         // If Clerk has not told us about this user we're still waiting for the
         // webhook notification.
-        return ["No Clerk User", null];
+        return { status: "No Clerk User" as const, user: null };
       }
-      return ["Logged In", user];
+      return { status: "Logged In" as const, user };
     }
-  );
+  });
   
   /** The current user, containing user preferences and Clerk user info. */
   export const currentUser = query((ctx: QueryCtx) => getCurrentUser(ctx));
