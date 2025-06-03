@@ -26,7 +26,7 @@ export default defineSchema({
 
     events: defineTable({
       name: v.string(),
-      eventType: v.array(
+      eventType:
         v.union(
           v.literal("Music Festival"),
           v.literal("Automotive Event"),
@@ -41,8 +41,7 @@ export default defineSchema({
           v.literal("Sporting Event"),
           v.literal("Private Event"),
           v.literal("Concert")
-        )
-      ),
+        ),
       location: v.object({
         address: v.string(),
         city: v.string(),
