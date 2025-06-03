@@ -60,11 +60,36 @@ import {
   });
   
   /** The current user, containing user preferences and Clerk user info. */
-  export const currentUser = query((ctx: QueryCtx) => getCurrentUser(ctx));
+  export const currentUser = query({
+    args: {},
+    returns: v.union(
+      v.null(),
+      v.object({
+        _id: v.id("users"),
+        _creationTime: v.number(),
+        email: v.string(),
+        first_name: v.optional(v.string()),
+        last_name: v.optional(v.string()),
+        clerkUser: v.any(),
+      })
+    ),
+    handler: async (ctx) => getCurrentUser(ctx),
+  });
   
   /** Get user by Clerk use id (AKA "subject" on auth)  */
   export const getUser = internalQuery({
     args: { subject: v.string() },
+    returns: v.union(
+      v.null(),
+      v.object({
+        _id: v.id("users"),
+        _creationTime: v.number(),
+        email: v.string(),
+        first_name: v.optional(v.string()),
+        last_name: v.optional(v.string()),
+        clerkUser: v.any(),
+      })
+    ),
     async handler(ctx, args) {
       return await userQuery(ctx, args.subject);
     },
@@ -73,6 +98,7 @@ import {
   /** Create a new Clerk user or update existing Clerk user data. */
   export const updateOrCreateUser = internalMutation({
     args: { clerkUser: v.any() }, // no runtime validation, trust Clerk
+    returns: v.null(),
     async handler(ctx, { clerkUser }: { clerkUser: UserJSON }) {
       const userRecord = await userQuery(ctx, clerkUser.id);
 
@@ -94,6 +120,7 @@ import {
   /** Delete a user by clerk user ID. */
   export const deleteUser = internalMutation({
     args: { id: v.string() },
+    returns: v.null(),
     async handler(ctx, { id }) {
       const userRecord = await userQuery(ctx, id);
   
