@@ -85,8 +85,8 @@ export default defineSchema({
       captureLimits: defineTable({
         plan: v.string(),
         planType: v.union(v.literal("photos-only"), v.literal("photos-videos")),
-        photo: v.number(),
-        video: v.number(),
+        photo: v.optional(v.number()),
+        video: v.optional(v.number()),
       }).index("by_plan", ["plan"]),
     
       gallery: defineTable({

@@ -8,8 +8,8 @@ export const getCaptureLimits = query({
     _creationTime: v.number(),
     plan: v.string(),
     planType: v.union(v.literal("photos-only"), v.literal("photos-videos")),
-    photo: v.number(),
-    video: v.number(),
+    photo: v.optional(v.number()),
+    video: v.optional(v.number()),
   })),
   handler: async (ctx) => {
     return await ctx.db.query("captureLimits").collect();

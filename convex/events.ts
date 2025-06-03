@@ -5,7 +5,7 @@ import { v } from "convex/values";
 export const createEvent = mutation({
     args: {
       name: v.string(),
-      eventType: v.array(v.union(
+      eventType: v.union(
         v.literal("Music Festival"),
         v.literal("Automotive Event"),
         v.literal("Wedding"),
@@ -19,7 +19,7 @@ export const createEvent = mutation({
         v.literal("Sporting Event"),
         v.literal("Private Event"),
         v.literal("Concert")
-      )),
+      ),
       location: v.object({
         address: v.string(),
         city: v.string(),
@@ -69,7 +69,7 @@ export const createEvent = mutation({
       _id: v.id("events"),
       _creationTime: v.number(),
       name: v.string(),
-      eventType: v.array(v.union(
+      eventType: v.union(
         v.literal("Music Festival"),
         v.literal("Automotive Event"),
         v.literal("Wedding"),
@@ -83,7 +83,7 @@ export const createEvent = mutation({
         v.literal("Sporting Event"),
         v.literal("Private Event"),
         v.literal("Concert")
-      )),
+      ),
       location: v.object({
         address: v.string(),
         city: v.string(),
@@ -133,7 +133,7 @@ export const getEventById = query({
       _id: v.id("events"),
       _creationTime: v.number(),
       name: v.string(),
-      eventType: v.array(v.union(
+      eventType: v.union(
         v.literal("Music Festival"),
         v.literal("Automotive Event"),
         v.literal("Wedding"),
@@ -147,7 +147,7 @@ export const getEventById = query({
         v.literal("Sporting Event"),
         v.literal("Private Event"),
         v.literal("Concert")
-      )),
+      ),
       location: v.object({
         address: v.string(),
         city: v.string(),
@@ -192,7 +192,7 @@ export const updateEvent = mutation({
     args: {
       eventId: v.id("events"),
       name: v.optional(v.string()),
-      eventType: v.optional(v.array(v.union(
+      eventType: v.optional(v.union(
         v.literal("Music Festival"),
         v.literal("Automotive Event"),
         v.literal("Wedding"),
@@ -206,7 +206,7 @@ export const updateEvent = mutation({
         v.literal("Sporting Event"),
         v.literal("Private Event"),
         v.literal("Concert")
-      ))),
+      )),
       location: v.optional(v.object({
         address: v.string(),
         city: v.string(),
@@ -307,7 +307,7 @@ export const filterEventsByStatus = query({
       _id: v.id("events"),
       _creationTime: v.number(),
       name: v.string(),
-      eventType: v.array(v.union(
+      eventType: v.union(
         v.literal("Music Festival"),
         v.literal("Automotive Event"),
         v.literal("Wedding"),
@@ -321,7 +321,7 @@ export const filterEventsByStatus = query({
         v.literal("Sporting Event"),
         v.literal("Private Event"),
         v.literal("Concert")
-      )),
+      ),
       location: v.object({
         address: v.string(),
         city: v.string(),
