@@ -25,7 +25,10 @@ export default defineSchema({
     .index("by_email", ["email"]),
 
     events: defineTable({
+      userId: v.id("users"),
       name: v.string(),
+      logo: v.optional(v.id("_storage")),
+      coverImage: v.optional(v.id("_storage")),
       eventType:
         v.union(
           v.literal("Music Festival"),
@@ -56,15 +59,25 @@ export default defineSchema({
         v.literal("live"), 
         v.literal("past")
       ),
-      estimatedGuest: v.union(
-        v.literal("0-100"),
-        v.literal("100-200"),
-        v.literal("200-300")
-      ),
-      guestLimit: v.number(),
+      basePackage: v.object({
+        dailyRate: v.number(),  //20$ every day
+        totalDays: v.number(), //calculated from start/end dates
+        totalBasePrice: v.number(), //dailyRate * totalDays
+      }),
+      guestPackage: v.object({
+        tier: v.union(
+          v.literal("0-100"),
+          v.literal("100-200"),
+          v.literal("200-300")
+        ),
+        maxGuests: v.number(), //100, 200, 300
+        additionalPrice: v.number(), //80, 160, 240 (on top of base)
+      }),
       reviewMode: v.boolean(),
-      withVideo: v.boolean(),
-      captureType: v.boolean(),
+      videoPackage: v.object({
+        enabled: v.boolean(),
+        price: v.number(), //0$ for false, 49$ for true
+      }),
       captureLimitId: v.id("captureLimits"),
       addOns: v.optional(
         v.object({
@@ -77,14 +90,15 @@ export default defineSchema({
       qrHash: v.string(),
       qrRoute: v.string(),
       updatedAt: v.number(),
-    })
+      paid: v.boolean(),
+    }).index("by_user", ["userId"])
       .index("by_status", ["status"])
       .index("by_start_date", ["startDate"])
       .index("by_qr_hash", ["qrHash"]),
 
       captureLimits: defineTable({
         plan: v.string(),
-        planType: v.union(v.literal("photos-only"), v.literal("photos-videos")),
+        planType: v.union(v.literal("photos-only"), v.literal("photos-videos"), v.literal("videos-only")),
         photo: v.optional(v.number()),
         video: v.optional(v.number()),
       }).index("by_plan", ["plan"]),

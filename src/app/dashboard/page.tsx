@@ -1,8 +1,8 @@
 // app/dashboard/page.jsx (App Router)
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api"; // adjust path as needed
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,23 +12,123 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Id } from "../../../convex/_generated/dataModel";
+import { useState } from "react";
+import { toast } from "sonner";
+import {
+  Calendar,
+  Users,
+  Upload,
+  Edit,
+  Trash2,
+  Eye,
+  Plus,
+  Filter,
+} from "lucide-react";
+
+type EventStatus = "all" | "upcoming" | "live" | "past";
 
 export default function Dashboard() {
-  const eventCount = useQuery(api.analytics.getAllEventCount);
-  const guestCount = useQuery(api.analytics.getAllGuestCountWhole);
-  const uploadCount = useQuery(api.analytics.getAllTotalUploadWhole);
-  const allEvents = useQuery(api.events.getAllEvents);
+  const [statusFilter, setStatusFilter] = useState<EventStatus>("all");
+
+  // Get current user from Convex (this gives us the proper Convex user ID)
+  const currentUser = useQuery(api.users.currentUser);
+  const userId = currentUser?._id;
+
+  // Analytics queries - always call hooks, handle undefined userId inside
+  const eventCount = useQuery(
+    api.analytics.getAllEventCount,
+    userId ? { userId } : "skip"
+  );
+  const guestCount = useQuery(
+    api.analytics.getAllGuestCountWhole,
+    userId ? { userId } : "skip"
+  );
+  const uploadCount = useQuery(
+    api.analytics.getAllTotalUploadWhole,
+    userId ? { userId } : "skip"
+  );
+
+  // Events queries - always call hooks
+  const allEvents = useQuery(
+    api.events.getAllEvents,
+    userId ? { userId } : "skip"
+  );
+  const filteredEvents = useQuery(
+    api.events.filterEventsByStatus,
+    statusFilter !== "all" && userId ? { userId, status: statusFilter } : "skip"
+  );
+
+  // Use allEvents when no filter is applied, otherwise use filteredEvents
+  const eventsToDisplay = statusFilter === "all" ? allEvents : filteredEvents;
+
+  // Mutations
+  const deleteEventMutation = useMutation(api.events.deleteEvent);
+
+  const handleDeleteEvent = async (eventId: Id<"events">) => {
+    if (!userId) return;
+
+    try {
+      await deleteEventMutation({ eventId, userId });
+      toast.success("Event deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete event");
+      console.error(error);
+    }
+  };
+
+  const handleViewEvent = (eventId: Id<"events">) => {
+    window.open(`/event/${eventId}`, "_blank");
+  };
 
   if (
+    currentUser === undefined ||
     eventCount === undefined ||
     guestCount === undefined ||
     uploadCount === undefined ||
-    allEvents === undefined
+    eventsToDisplay === undefined
   ) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
         <div className="max-w-6xl mx-auto">
-          <div>Loading...</div>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-lg">Loading dashboard...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentUser === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-4">Please log in</h2>
+              <p className="text-gray-600">
+                You need to be logged in to view your dashboard.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -37,35 +137,71 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600">
+              Welcome back, {currentUser.first_name || currentUser.email}!
+            </p>
+          </div>
+          <Link href="/event/create">
+            <Button className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Create New Event
+            </Button>
+          </Link>
+        </div>
 
         {/* Analytics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Events</CardTitle>
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Events
+              </CardTitle>
+              <Calendar className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-blue-600">{eventCount}</p>
+              <div className="text-2xl font-bold text-blue-600">
+                {eventCount}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Events you&apos;ve created
+              </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Guests</CardTitle>
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Guests
+              </CardTitle>
+              <Users className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-green-600">{guestCount}</p>
+              <div className="text-2xl font-bold text-green-600">
+                {guestCount}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Across all your events
+              </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Uploads</CardTitle>
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Uploads
+              </CardTitle>
+              <Upload className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-purple-600">
+              <div className="text-2xl font-bold text-purple-600">
                 {uploadCount}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Photos and videos uploaded
               </p>
             </CardContent>
           </Card>
@@ -74,31 +210,76 @@ export default function Dashboard() {
         {/* Events List */}
         <Card>
           <CardHeader>
-            <CardTitle>All Events</CardTitle>
-            <CardDescription>View and edit your events</CardDescription>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  All Events
+                  <span className="text-sm font-normal text-muted-foreground">
+                    ({eventsToDisplay.length})
+                  </span>
+                </CardTitle>
+                <CardDescription>View and manage your events</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value: EventStatus) => setStatusFilter(value)}
+                >
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Events</SelectItem>
+                    <SelectItem value="upcoming">Upcoming</SelectItem>
+                    <SelectItem value="live">Live</SelectItem>
+                    <SelectItem value="past">Past</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            {allEvents.length === 0 ? (
-              <p className="text-gray-500">No events found.</p>
+            {eventsToDisplay.length === 0 ? (
+              <div className="text-center py-12">
+                <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-lg font-medium text-muted-foreground mb-2">
+                  {statusFilter === "all"
+                    ? "No events found"
+                    : `No ${statusFilter} events found`}
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {statusFilter === "all"
+                    ? "Get started by creating your first event"
+                    : "Try selecting a different filter"}
+                </p>
+                {statusFilter === "all" && (
+                  <Link href="/event/create">
+                    <Button>Create Your First Event</Button>
+                  </Link>
+                )}
+              </div>
             ) : (
               <div className="space-y-4">
-                {allEvents.map((event) => (
+                {eventsToDisplay.map((event) => (
                   <div
                     key={event._id}
-                    className="flex items-center justify-between p-4 border rounded-lg bg-white shadow-sm"
+                    className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-6 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
                   >
-                    <div>
-                      <h3 className="font-semibold text-lg">{event.name}</h3>
-                      <p className="text-gray-600">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-lg text-gray-900 mb-1">
+                        {event.name}
+                      </h3>
+                      <p className="text-gray-600 mb-1">
                         {event.location.city}, {event.location.region}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 mb-3">
                         {new Date(event.startDate).toLocaleDateString()} -{" "}
                         {new Date(event.endDate).toLocaleDateString()}
                       </p>
-                      <div className="flex gap-2 mt-2">
+                      <div className="flex flex-wrap gap-2">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
                             event.status === "upcoming"
                               ? "bg-blue-100 text-blue-800"
                               : event.status === "live"
@@ -109,18 +290,82 @@ export default function Dashboard() {
                           {event.status.charAt(0).toUpperCase() +
                             event.status.slice(1)}
                         </span>
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          {event.eventType}
+                        </span>
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           ${event.price}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
-                      <Link href={`/edit_event?id=${event._id}`}>
-                        <Button variant="outline" size="sm">
+                    <div className="flex flex-wrap gap-2 mt-4 lg:mt-0 lg:ml-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewEvent(event._id)}
+                        className="flex items-center gap-1"
+                      >
+                        <Eye className="h-3 w-3" />
+                        View
+                      </Button>
+
+                      <Link href={`/event/${event._id}/edit-event`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <Edit className="h-3 w-3" />
                           Edit Event
                         </Button>
                       </Link>
+
+                      <Link href={`/event/${event._id}/edit-guest`}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1"
+                        >
+                          <Users className="h-3 w-3" />
+                          Edit Guests
+                        </Button>
+                      </Link>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Are you absolutely sure?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will
+                              permanently delete the event &quot;{event.name}
+                              &quot; and all associated data including guests
+                              and uploads.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteEvent(event._id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete Event
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 ))}

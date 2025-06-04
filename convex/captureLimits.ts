@@ -7,7 +7,7 @@ export const getCaptureLimits = query({
     _id: v.id("captureLimits"),
     _creationTime: v.number(),
     plan: v.string(),
-    planType: v.union(v.literal("photos-only"), v.literal("photos-videos")),
+    planType: v.union(v.literal("photos-only"), v.literal("photos-videos"), v.literal("videos-only")),
     photo: v.optional(v.number()),
     video: v.optional(v.number()),
   })),
@@ -15,3 +15,5 @@ export const getCaptureLimits = query({
     return await ctx.db.query("captureLimits").collect();
   },
 });
+
+

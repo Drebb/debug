@@ -19,6 +19,7 @@ import type * as events from "../events.js";
 import type * as gallery from "../gallery.js";
 import type * as guests from "../guests.js";
 import type * as http from "../http.js";
+import type * as pricing from "../pricing.js";
 import type * as users from "../users.js";
 
 /**
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   gallery: typeof gallery;
   guests: typeof guests;
   http: typeof http;
+  pricing: typeof pricing;
   users: typeof users;
 }>;
 export declare const api: FilterApi<
