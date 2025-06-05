@@ -1,9 +1,5 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import { Id } from "../../../../convex/_generated/dataModel";
-import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,8 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
+import { useMutation, useQuery } from "convex/react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { api } from "../../../../convex/_generated/api";
+import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -21,28 +21,32 @@ export default function EventDetailPage() {
   const { user } = useUser();
   const eventId = id as Id<"events">;
 
+  // Get Convex user (with _id)
+  const currentUser = useQuery(api.users.currentUser);
+  const convexUserId = currentUser?._id;
+
   const event = useQuery(
     api.events.getEventById,
-    eventId && user?.id ? { eventId, userId: user.id as Id<"users"> } : "skip"
+    eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
   );
   const guestCount = useQuery(
     api.analytics.getAllGuestCountPerEvent,
-    eventId && user?.id ? { eventId, userId: user.id as Id<"users"> } : "skip"
+    eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
   );
   const uploadCount = useQuery(
     api.analytics.getAllTotalUploadPerEvent,
-    eventId && user?.id ? { eventId, userId: user.id as Id<"users"> } : "skip"
+    eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
   );
   const guestList = useQuery(
     api.guests.getGuestList,
-    eventId && user?.id ? { eventId, userId: user.id as Id<"users"> } : "skip"
+    eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
   );
 
   const deleteEvent = useMutation(api.events.deleteEvent);
   const deleteGuest = useMutation(api.guests.deleteGuestRecord);
 
   const handleDeleteEvent = async () => {
-    if (!user?.id) return;
+    if (!convexUserId) return;
 
     const confirm = window.confirm(
       "Are you sure you want to delete this event?"
@@ -51,7 +55,7 @@ export default function EventDetailPage() {
 
     const result = await deleteEvent({
       eventId,
-      userId: user.id as Id<"users">,
+      userId: convexUserId,
     });
     if (result.success) {
       alert("Event deleted.");
@@ -62,14 +66,14 @@ export default function EventDetailPage() {
   };
 
   const handleGuestDelete = async (guestId: Id<"guests">) => {
-    if (!user?.id) return;
+    if (!convexUserId) return;
 
     const confirm = window.confirm("Delete this guest and their uploads?");
     if (!confirm) return;
 
     const result = await deleteGuest({
       guestId,
-      userId: user.id as Id<"users">,
+      userId: convexUserId,
     });
     if (result.success) {
       alert("Guest deleted.");

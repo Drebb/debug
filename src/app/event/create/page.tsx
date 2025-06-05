@@ -1,18 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import { useUser } from "@clerk/nextjs";
-import { toast } from "sonner";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useUser } from "@clerk/nextjs";
+import { useMutation, useQuery } from "convex/react";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+import { api } from "../../../../convex/_generated/api";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
   CardContent,
@@ -20,6 +19,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -28,13 +35,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 
 type EventFormData = {
   name: string;
@@ -95,6 +95,7 @@ export default function CreateEventPage() {
   const { user } = useUser();
   const createEvent = useMutation(api.events.createEvent);
   const captureLimits = useQuery(api.captureLimits.getCaptureLimits);
+  const convexUser = useQuery(api.users.currentUser);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<EventFormData>({
@@ -175,14 +176,14 @@ export default function CreateEventPage() {
 
         // Auto-calculate guest package pricing
         if (parent === "guestPackage" && child === "tier") {
-          const tierPricing = {
+          const tierPricing: Record<"0-100" | "100-200" | "200-300", { maxGuests: number; additionalPrice: number }> = {
             "0-100": { maxGuests: 100, additionalPrice: 150 },
             "100-200": { maxGuests: 200, additionalPrice: 300 },
             "200-300": { maxGuests: 300, additionalPrice: 450 },
           };
-          updated.guestPackage.maxGuests = tierPricing[value].maxGuests;
-          updated.guestPackage.additionalPrice =
-            tierPricing[value].additionalPrice;
+          const tier = value as "0-100" | "100-200" | "200-300";
+          updated.guestPackage.maxGuests = tierPricing[tier].maxGuests;
+          updated.guestPackage.additionalPrice = tierPricing[tier].additionalPrice;
         }
 
         // Auto-calculate video package pricing
@@ -225,7 +226,7 @@ export default function CreateEventPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user?.id) {
+    if (!convexUser?._id) {
       toast.error("You must be logged in to create an event");
       return;
     }
@@ -240,27 +241,29 @@ export default function CreateEventPage() {
       return;
     }
 
+    if (!formData.captureLimitId) {
+      toast.error("Please select a capture plan");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const { hash, route } = generateQRData();
 
       const eventId = await createEvent({
-        userId: user.id as any,
+        userId: convexUser._id,
         name: formData.name,
         eventType: formData.eventType as any,
         location: formData.location,
         startDate: formData.startDate.getTime(),
         endDate: formData.endDate.getTime(),
         status: "upcoming",
-        basePackage: formData.basePackage,
-        guestPackage: formData.guestPackage,
+        guestTier: formData.guestPackage.tier,
         reviewMode: formData.reviewMode,
-        videoPackage: formData.videoPackage,
         captureLimitId: formData.captureLimitId as any,
         addOns: formData.addOns,
         terms: formData.terms,
-        price: formData.price,
         qrHash: hash,
         qrRoute: route,
       });
@@ -363,7 +366,6 @@ export default function CreateEventPage() {
                         updateFormData("location.city", e.target.value)
                       }
                       placeholder="City"
-                      required
                     />
                   </div>
                   <div>
@@ -375,7 +377,6 @@ export default function CreateEventPage() {
                         updateFormData("location.region", e.target.value)
                       }
                       placeholder="State/Province"
-                      required
                     />
                   </div>
                 </div>
@@ -390,7 +391,6 @@ export default function CreateEventPage() {
                         updateFormData("location.postal", e.target.value)
                       }
                       placeholder="Postal code"
-                      required
                     />
                   </div>
                   <div>
@@ -402,7 +402,6 @@ export default function CreateEventPage() {
                         updateFormData("location.country", e.target.value)
                       }
                       placeholder="Country"
-                      required
                     />
                   </div>
                 </div>
@@ -630,8 +629,6 @@ export default function CreateEventPage() {
                           {limit.plan} ({limit.planType})
                           {limit.photo && ` - ${limit.photo} photos`}
                           {limit.video && ` - ${limit.video} videos`}
-                          {limit.pricing &&
-                            ` - $${limit.pricing.pricePerGuest}/guest`}
                         </SelectItem>
                       ))}
                     </SelectContent>
