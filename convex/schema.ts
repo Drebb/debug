@@ -22,7 +22,9 @@ export default defineSchema({
     }),
   })
     .index("by_event", ["eventId"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_fingerprint", ["fingerprint.visitorId"])
+    .index("by_event_and_fingerprint", ["eventId", "fingerprint.visitorId"]),
 
     events: defineTable({
       userId: v.id("users"),
@@ -87,14 +89,11 @@ export default defineSchema({
       ),
       terms: v.boolean(),
       price: v.number(),
-      qrHash: v.string(),
-      qrRoute: v.string(),
       updatedAt: v.number(),
       paid: v.boolean(),
     }).index("by_user", ["userId"])
       .index("by_status", ["status"])
-      .index("by_start_date", ["startDate"])
-      .index("by_qr_hash", ["qrHash"]),
+      .index("by_start_date", ["startDate"]),
 
       captureLimits: defineTable({
         plan: v.string(),

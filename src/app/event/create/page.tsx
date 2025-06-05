@@ -4,8 +4,9 @@ import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
@@ -134,12 +135,6 @@ export default function CreateEventPage() {
     price: 0,
   });
 
-  const generateQRData = () => {
-    const hash = Math.random().toString(36).substring(2, 15);
-    const route = `/event/${hash}`;
-    return { hash, route };
-  };
-
   const calculateTotalDays = (start: Date, end: Date) => {
     const timeDiff = end.getTime() - start.getTime();
     return Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1; // +1 to include both start and end days
@@ -176,14 +171,18 @@ export default function CreateEventPage() {
 
         // Auto-calculate guest package pricing
         if (parent === "guestPackage" && child === "tier") {
-          const tierPricing: Record<"0-100" | "100-200" | "200-300", { maxGuests: number; additionalPrice: number }> = {
+          const tierPricing: Record<
+            "0-100" | "100-200" | "200-300",
+            { maxGuests: number; additionalPrice: number }
+          > = {
             "0-100": { maxGuests: 100, additionalPrice: 150 },
             "100-200": { maxGuests: 200, additionalPrice: 300 },
             "200-300": { maxGuests: 300, additionalPrice: 450 },
           };
           const tier = value as "0-100" | "100-200" | "200-300";
           updated.guestPackage.maxGuests = tierPricing[tier].maxGuests;
-          updated.guestPackage.additionalPrice = tierPricing[tier].additionalPrice;
+          updated.guestPackage.additionalPrice =
+            tierPricing[tier].additionalPrice;
         }
 
         // Auto-calculate video package pricing
@@ -249,8 +248,6 @@ export default function CreateEventPage() {
     setIsSubmitting(true);
 
     try {
-      const { hash, route } = generateQRData();
-
       const eventId = await createEvent({
         userId: convexUser._id,
         name: formData.name,
@@ -264,8 +261,6 @@ export default function CreateEventPage() {
         captureLimitId: formData.captureLimitId as any,
         addOns: formData.addOns,
         terms: formData.terms,
-        qrHash: hash,
-        qrRoute: route,
       });
 
       toast.success("Event created successfully!");
@@ -293,6 +288,18 @@ export default function CreateEventPage() {
       <div className="max-w-4xl mx-auto">
         <Card>
           <CardHeader>
+            <div className="flex items-center gap-4 mb-4">
+              <Link href="/dashboard">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+            </div>
             <CardTitle className="text-3xl font-bold">
               Create New Event
             </CardTitle>
@@ -695,10 +702,26 @@ export default function CreateEventPage() {
                 </Label>
               </div>
 
-              {/* Submit Button */}
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Creating Event..." : "Create Event"}
-              </Button>
+              {/* Submit Buttons */}
+              <div className="flex gap-4">
+                <Link href="/dashboard" className="flex-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                </Link>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Creating Event..." : "Create Event"}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
