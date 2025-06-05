@@ -1,14 +1,15 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../../../convex/_generated/api";
-import { Id } from "../../../../../convex/_generated/dataModel";
+import { useUser } from "@clerk/nextjs";
+import { useMutation, useQuery } from "convex/react";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { useUser } from "@clerk/nextjs";
+import { api } from "../../../../../convex/_generated/api";
+import { Id } from "../../../../../convex/_generated/dataModel";
 
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -16,10 +17,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -108,6 +108,10 @@ export default function EditEventPage() {
   const { id } = useParams();
   const eventId = id as Id<"events">;
 
+  // Get Convex user (with _id)
+  const currentUser = useQuery(api.users.currentUser);
+  const convexUserId = currentUser?._id;
+
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEventType, setSelectedEventType] =
     useState<EventType>("Music Festival");
@@ -116,7 +120,7 @@ export default function EditEventPage() {
 
   const event = useQuery(
     api.events.getEventById,
-    eventId && user?.id ? { eventId, userId: user.id as Id<"users"> } : "skip"
+    eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
   );
   const updateEvent = useMutation(api.events.updateEvent);
 
@@ -229,7 +233,7 @@ export default function EditEventPage() {
   }
 
   const onSubmit = async (data: EventFormData) => {
-    if (!user?.id) {
+    if (!convexUserId) {
       toast.error("You must be logged in to update an event");
       return;
     }
@@ -238,24 +242,17 @@ export default function EditEventPage() {
     try {
       await updateEvent({
         eventId,
-        userId: user.id as Id<"users">,
+        userId: convexUserId,
         name: data.name,
         eventType: selectedEventType,
         location: data.location,
         startDate: new Date(data.startDate).getTime(),
         endDate: new Date(data.endDate).getTime(),
         status: currentStatus,
-        basePackage: data.basePackage,
-        guestPackage: {
-          tier: currentGuestTier,
-          maxGuests: data.guestPackage.maxGuests,
-          additionalPrice: data.guestPackage.additionalPrice,
-        },
         reviewMode: data.reviewMode,
-        videoPackage: data.videoPackage,
         terms: data.terms,
-        price: data.price,
         addOns: data.addOns,
+        // price is not allowed as a direct argument; backend will recalculate
       });
 
       toast.success("Event updated successfully!");

@@ -32,10 +32,59 @@ async function verifyGuestOwnership(ctx: any, guestId: string, userId: string) {
   return { guest, event };
 }
 
+export const checkExistingRegistration = query({
+  args: {
+    eventId: v.id("events"),
+    baseVisitorId: v.string(),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.id("guests"),
+      _creationTime: v.number(),
+      eventId: v.id("events"),
+      nickname: v.string(),
+      email: v.optional(v.string()),
+      socialHandle: v.optional(v.string()),
+      fingerprint: v.object({
+        visitorId: v.string(),
+        userAgent: v.string(),
+      }),
+    })
+  ),
+  handler: async (ctx, args) => {
+    // Check if this device (base visitor ID) is already registered for this event
+    // We need to check all guests for this event and see if any have a visitorId that starts with the base
+    console.log("Checking existing registration for baseVisitorId:", args.baseVisitorId);
+    
+    const allGuestsForEvent = await ctx.db
+      .query("guests")
+      .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+      .collect();
+    
+    console.log("All guests for event:", allGuestsForEvent.map(g => ({ 
+      id: g._id, 
+      nickname: g.nickname, 
+      visitorId: g.fingerprint.visitorId 
+    })));
+    
+    const existingGuest = allGuestsForEvent.find(guest => 
+      guest.fingerprint.visitorId.startsWith(args.baseVisitorId + "_")
+    );
+    
+    console.log("Found existing guest:", existingGuest ? { 
+      id: existingGuest._id, 
+      nickname: existingGuest.nickname, 
+      visitorId: existingGuest.fingerprint.visitorId 
+    } : null);
+    
+    return existingGuest || null;
+  },
+});
+
 export const saveGuestRecord = mutation({
     args: {
       eventId: v.id("events"),
-      userId: v.id("users"),
       nickname: v.string(),
       email: v.optional(v.string()),
       socialHandle: v.optional(v.string()),
@@ -46,8 +95,28 @@ export const saveGuestRecord = mutation({
     },
     returns: v.id("guests"),
     handler: async (ctx, args) => {
-      // Verify ownership before adding guest
-      await verifyEventOwnershipByEventId(ctx, args.eventId, args.userId);
+      // Verify event exists (but don't check ownership)
+      const event = await ctx.db.get(args.eventId);
+      if (!event) {
+        throw new Error("Event not found");
+      }
+      
+      // Extract base visitor ID (before the nickname suffix)
+      const baseVisitorId = args.fingerprint.visitorId.split("_")[0];
+      
+      // Check if this device (base visitor ID) is already registered for this event
+      const allGuestsForEvent = await ctx.db
+        .query("guests")
+        .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+        .collect();
+      
+      const existingGuest = allGuestsForEvent.find(guest => 
+        guest.fingerprint.visitorId.startsWith(baseVisitorId + "_")
+      );
+      
+      if (existingGuest) {
+        throw new Error(`This device is already registered for this event with nickname: ${existingGuest.nickname}`);
+      }
       
       const guestId = await ctx.db.insert("guests", {
         eventId: args.eventId,
@@ -79,7 +148,7 @@ export const getGuestList = query({
       }),
     })),
     handler: async (ctx, args) => {
-      // Verify ownership before showing guests
+      // Verify event exists and user owns it
       await verifyEventOwnershipByEventId(ctx, args.eventId, args.userId);
       
       return await ctx.db
@@ -146,4 +215,41 @@ export const deleteGuestRecord = mutation({
       return { success: true };
     },
   });
+
+// Get guest by fingerprint for authentication (used by guests to identify themselves)
+export const getGuestByFingerprint = query({
+  args: {
+    eventId: v.id("events"),
+    visitorId: v.string(),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.id("guests"),
+      _creationTime: v.number(),
+      eventId: v.id("events"),
+      nickname: v.string(),
+      email: v.optional(v.string()),
+      socialHandle: v.optional(v.string()),
+      fingerprint: v.object({
+        visitorId: v.string(),
+        userAgent: v.string(),
+      }),
+    })
+  ),
+  handler: async (ctx, args) => {
+    // Find guest by exact visitor ID match
+    const guest = await ctx.db
+      .query("guests")
+      .withIndex("by_event_and_fingerprint", (q) => 
+        q.eq("eventId", args.eventId).eq("fingerprint.visitorId", args.visitorId)
+      )
+      .first();
+    
+    return guest || null;
+  },
+});
+
+
+
   

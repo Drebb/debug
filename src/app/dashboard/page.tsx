@@ -1,9 +1,17 @@
 // app/dashboard/page.jsx (App Router)
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import Link from "next/link";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,35 +27,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Id } from "../../../convex/_generated/dataModel";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useMutation, useQuery } from "convex/react";
 import {
   Calendar,
-  Users,
-  Upload,
   Edit,
-  Trash2,
   Eye,
-  Plus,
   Filter,
+  Plus,
+  Trash2,
+  Upload,
+  Users,
+  ArrowLeft,
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 
 type EventStatus = "all" | "upcoming" | "live" | "past";
 
 export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<EventStatus>("all");
+  const router = useRouter();
 
   // Get current user from Convex (this gives us the proper Convex user ID)
   const currentUser = useQuery(api.users.currentUser);
@@ -96,7 +99,7 @@ export default function Dashboard() {
   };
 
   const handleViewEvent = (eventId: Id<"events">) => {
-    window.open(`/event/${eventId}`, "_blank");
+    router.push(`/event/${eventId}`);
   };
 
   if (
@@ -139,11 +142,23 @@ export default function Dashboard() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600">
-              Welcome back, {currentUser.first_name || currentUser.email}!
-            </p>
+          <div className="flex items-center gap-4">
+            <Link href="/">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Home
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-gray-600">
+                Welcome back, {currentUser.first_name || currentUser.email}!
+              </p>
+            </div>
           </div>
           <Link href="/event/create">
             <Button className="flex items-center gap-2">
@@ -318,17 +333,6 @@ export default function Dashboard() {
                         >
                           <Edit className="h-3 w-3" />
                           Edit Event
-                        </Button>
-                      </Link>
-
-                      <Link href={`/event/${event._id}/edit-guest`}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1"
-                        >
-                          <Users className="h-3 w-3" />
-                          Edit Guests
                         </Button>
                       </Link>
 
