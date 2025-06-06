@@ -35,11 +35,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 
 // Import react-hook-form and Zod
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
   FormControl,
@@ -49,6 +46,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { EventFormSchema, type EventForm } from "@/lib/validations";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 
 const eventTypes = [
   "Music Festival",
@@ -91,7 +90,7 @@ export default function CreateEventPage() {
     resolver: zodResolver(EventFormSchema),
     defaultValues: {
       name: "",
-      eventType: "Wedding" as const,
+      eventType: "Music Festival" as const,
       location: {
         address: "",
         city: "",

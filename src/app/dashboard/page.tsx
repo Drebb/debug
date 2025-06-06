@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { useMutation, useQuery } from "convex/react";
 import {
+  ArrowLeft,
   Calendar,
   Edit,
   Eye,
@@ -37,7 +38,6 @@ import {
   Trash2,
   Upload,
   Users,
-  ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -47,6 +47,16 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 
 type EventStatus = "all" | "upcoming" | "live" | "past";
+
+// Helper to compute event status
+function getEventStatus(event: { startDate: string | number; endDate: string | number }) {
+  const now = Date.now();
+  const start = typeof event.startDate === "number" ? event.startDate : new Date(event.startDate).getTime();
+  const end = typeof event.endDate === "number" ? event.endDate : new Date(event.endDate).getTime();
+  if (now < start) return "upcoming";
+  if (now >= start && now <= end) return "live";
+  return "past";
+}
 
 export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<EventStatus>("all");
@@ -81,7 +91,16 @@ export default function Dashboard() {
   );
 
   // Use allEvents when no filter is applied, otherwise use filteredEvents
-  const eventsToDisplay = statusFilter === "all" ? allEvents : filteredEvents;
+  // Compute status on the fly for all events
+  const eventsWithComputedStatus = (allEvents || []).map(event => ({
+    ...event,
+    computedStatus: getEventStatus(event)
+  }));
+
+  // Filter events based on computed status
+  const eventsToDisplay = statusFilter === "all"
+    ? eventsWithComputedStatus
+    : eventsWithComputedStatus.filter(e => e.computedStatus === statusFilter);
 
   // Mutations
   const deleteEventMutation = useMutation(api.events.deleteEvent);
@@ -295,15 +314,15 @@ export default function Dashboard() {
                       <div className="flex flex-wrap gap-2">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            event.status === "upcoming"
+                            event.computedStatus === "upcoming"
                               ? "bg-blue-100 text-blue-800"
-                              : event.status === "live"
+                              : event.computedStatus === "live"
                                 ? "bg-green-100 text-green-800"
                                 : "bg-gray-100 text-gray-800"
                           }`}
                         >
-                          {event.status.charAt(0).toUpperCase() +
-                            event.status.slice(1)}
+                          {event.computedStatus.charAt(0).toUpperCase() +
+                            event.computedStatus.slice(1)}
                         </span>
                         <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                           {event.eventType}
@@ -330,6 +349,8 @@ export default function Dashboard() {
                           variant="outline"
                           size="sm"
                           className="flex items-center gap-1"
+                          disabled={event.computedStatus === "live"}
+                          title={event.computedStatus === "live" ? "Editing is disabled while event is live" : undefined}
                         >
                           <Edit className="h-3 w-3" />
                           Edit Event

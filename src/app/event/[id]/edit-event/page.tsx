@@ -38,8 +38,6 @@ import {
 } from "@/components/ui/select";
 
 // Import react-hook-form and Zod
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
   FormControl,
@@ -49,6 +47,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { EventFormSchema, type EventForm } from "@/lib/validations";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 
 const eventTypes = [
   "Music Festival",
@@ -273,6 +273,14 @@ export default function EditEventPage() {
     }
   };
 
+  // Helper to check if event is live
+  const isEventLive = event && (() => {
+    const now = Date.now();
+    const start = typeof event.startDate === "number" ? event.startDate : new Date(event.startDate).getTime();
+    const end = typeof event.endDate === "number" ? event.endDate : new Date(event.endDate).getTime();
+    return now >= start && now <= end;
+  })();
+
   if (!user?.id) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
@@ -302,6 +310,34 @@ export default function EditEventPage() {
               <p className="text-red-600">Event not found.</p>
               <Button onClick={() => router.back()} className="mt-4">
                 Go Back
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Render the form only when isDataLoaded is true
+  if (!isDataLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center">Loading event data...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEventLive) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+        <div className="max-w-4xl mx-auto">
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-blue-700 font-semibold text-lg">This event is currently live and cannot be edited.</p>
+              <Button onClick={() => router.push(`/event/${eventId}`)} className="mt-4">
+                Back to Event
               </Button>
             </CardContent>
           </Card>

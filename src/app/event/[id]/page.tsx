@@ -1,5 +1,7 @@
 "use client";
 
+import { QRCodeDisplay } from "@/components/QRCodeDisplay";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,23 +17,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
+import {
+  ArrowLeft,
+  Download,
+  Eye,
+  Image as ImageIcon,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  Download,
-  Eye,
-  Trash2,
-  Image as ImageIcon,
-  ArrowLeft,
-} from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
-import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -44,31 +44,34 @@ export default function EventDetailPage() {
   const convexUserId = currentUser?._id;
   const guestPackages = useQuery(api.guestPackages.getGuestPackageTiers);
 
+  // Fetch event first
   const event = useQuery(
     api.events.getEventById,
     eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
   );
+
+  // Only fetch analytics/gallery if event is not null
   const guestCount = useQuery(
     api.analytics.getAllGuestCountPerEvent,
-    eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
+    event && event !== null && eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
   );
   const uploadCount = useQuery(
     api.analytics.getAllTotalUploadPerEvent,
-    eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
+    event && event !== null && eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
   );
   const guestList = useQuery(
     api.guests.getGuestList,
-    eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
+    event && event !== null && eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
   );
 
   // Gallery queries
   const galleryImages = useQuery(
     api.gallery.getGalleryByEvent,
-    eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
+    event && event !== null && eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
   );
   const allImagesForDownload = useQuery(
     api.gallery.getAllImagesForDownload,
-    eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
+    event && event !== null && eventId && convexUserId ? { eventId, userId: convexUserId } : "skip"
   );
 
   const deleteEvent = useMutation(api.events.deleteEvent);
