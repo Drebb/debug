@@ -435,51 +435,6 @@ export default function EditEventPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Pricing Packages</h3>
 
-                {/* Base Package */}
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-3">Base Package</h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="dailyRate">Daily Rate ($)</Label>
-                      <Input
-                        id="dailyRate"
-                        type="number"
-                        step="0.01"
-                        {...register("basePackage.dailyRate", {
-                          required: true,
-                          valueAsNumber: true,
-                        })}
-                        onChange={(e) => {
-                          setValue(
-                            "basePackage.dailyRate",
-                            parseFloat(e.target.value) || 0
-                          );
-                          updatePricing();
-                        }}
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label>Total Days</Label>
-                      <Input
-                        type="number"
-                        {...register("basePackage.totalDays")}
-                        disabled
-                        className="bg-gray-50 mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label>Base Price ($)</Label>
-                      <Input
-                        type="number"
-                        {...register("basePackage.totalBasePrice")}
-                        disabled
-                        className="bg-gray-50 mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 {/* Guest Package */}
                 <div className="p-4 border rounded-lg">
                   <h4 className="font-medium mb-3">Guest Package</h4>
@@ -501,24 +456,6 @@ export default function EditEventPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div>
-                      <Label>Max Guests</Label>
-                      <Input
-                        type="number"
-                        {...register("guestPackage.maxGuests")}
-                        disabled
-                        className="bg-gray-50 mt-1"
-                      />
-                    </div>
-                    <div>
-                      <Label>Additional Price ($)</Label>
-                      <Input
-                        type="number"
-                        {...register("guestPackage.additionalPrice")}
-                        disabled
-                        className="bg-gray-50 mt-1"
-                      />
                     </div>
                   </div>
                 </div>

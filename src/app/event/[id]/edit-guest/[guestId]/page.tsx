@@ -1,10 +1,5 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../../../../convex/_generated/api";
-import { Id } from "../../../../../../convex/_generated/dataModel";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,8 +10,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
+import { useMutation, useQuery } from "convex/react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { api } from "../../../../../../convex/_generated/api";
+import { Id } from "../../../../../../convex/_generated/dataModel";
 
 export default function EditIndividualGuestPage() {
   const { id, guestId } = useParams();
@@ -158,9 +158,7 @@ export default function EditIndividualGuestPage() {
             <Link href={`/event/${eventId}`}>
               <Button variant="outline">Back to Event</Button>
             </Link>
-            <Link href={`/event/${eventId}/edit-guest`}>
-              <Button variant="outline">Manage All Guests</Button>
-            </Link>
+    
           </div>
         </div>
 

@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
-import { CalendarIcon, ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { ArrowLeft, CalendarIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
@@ -489,47 +489,6 @@ export default function CreateEventPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Pricing Packages</h3>
 
-                {/* Base Package */}
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-3">Base Package</h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="dailyRate">Daily Rate ($)</Label>
-                      <Input
-                        id="dailyRate"
-                        type="number"
-                        step="0.01"
-                        value={formData.basePackage.dailyRate}
-                        onChange={(e) =>
-                          updateFormData(
-                            "basePackage.dailyRate",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        placeholder="20.00"
-                      />
-                    </div>
-                    <div>
-                      <Label>Total Days</Label>
-                      <Input
-                        type="number"
-                        value={formData.basePackage.totalDays}
-                        disabled
-                        className="bg-gray-50"
-                      />
-                    </div>
-                    <div>
-                      <Label>Base Price ($)</Label>
-                      <Input
-                        type="number"
-                        value={formData.basePackage.totalBasePrice}
-                        disabled
-                        className="bg-gray-50"
-                      />
-                    </div>
-                  </div>
-                </div>
-
                 {/* Guest Package */}
                 <div className="p-4 border rounded-lg">
                   <h4 className="font-medium mb-3">Guest Package</h4>
@@ -553,24 +512,6 @@ export default function CreateEventPage() {
                           ))}
                         </SelectContent>
                       </Select>
-                    </div>
-                    <div>
-                      <Label>Max Guests</Label>
-                      <Input
-                        type="number"
-                        value={formData.guestPackage.maxGuests}
-                        disabled
-                        className="bg-gray-50"
-                      />
-                    </div>
-                    <div>
-                      <Label>Additional Price ($)</Label>
-                      <Input
-                        type="number"
-                        value={formData.guestPackage.additionalPrice}
-                        disabled
-                        className="bg-gray-50"
-                      />
                     </div>
                   </div>
                 </div>
