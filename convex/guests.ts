@@ -1,6 +1,16 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+// Import Zod schemas for validation
+import { 
+  CreateGuestSchema,
+  UpdateGuestSchema,
+  DeleteGuestSchema,
+  CheckExistingRegistrationSchema,
+  type CreateGuest,
+  type UpdateGuest
+} from "../src/lib/validations";
+
 // Helper function to verify event ownership via eventId
 async function verifyEventOwnershipByEventId(ctx: any, eventId: string, userId: string) {
   const event = await ctx.db.get(eventId);
@@ -32,6 +42,16 @@ async function verifyGuestOwnership(ctx: any, guestId: string, userId: string) {
   return { guest, event };
 }
 
+// Helper function to validate data with Zod
+function validateWithZod<T>(schema: any, data: any, actionName: string): T {
+  try {
+    return schema.parse(data);
+  } catch (error: any) {
+    const errorMessage = error.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ') || error.message;
+    throw new Error(`Validation failed for ${actionName}: ${errorMessage}`);
+  }
+}
+
 export const checkExistingRegistration = query({
   args: {
     eventId: v.id("events"),
@@ -53,6 +73,13 @@ export const checkExistingRegistration = query({
     })
   ),
   handler: async (ctx, args) => {
+    // Validate input data with Zod
+    const dataToValidate = {
+      eventId: args.eventId as string,
+      baseVisitorId: args.baseVisitorId,
+    };
+    validateWithZod(CheckExistingRegistrationSchema, dataToValidate, "checkExistingRegistration");
+    
     // Check if this device (base visitor ID) is already registered for this event
     // We need to check all guests for this event and see if any have a visitorId that starts with the base
     console.log("Checking existing registration for baseVisitorId:", args.baseVisitorId);
@@ -95,6 +122,16 @@ export const saveGuestRecord = mutation({
     },
     returns: v.id("guests"),
     handler: async (ctx, args) => {
+      // Validate input data with Zod
+      const dataToValidate = {
+        eventId: args.eventId as string,
+        nickname: args.nickname,
+        email: args.email,
+        socialHandle: args.socialHandle,
+        fingerprint: args.fingerprint,
+      };
+      const validatedData = validateWithZod<CreateGuest>(CreateGuestSchema, dataToValidate, "saveGuestRecord");
+      
       // Verify event exists (but don't check ownership)
       const event = await ctx.db.get(args.eventId);
       if (!event) {
@@ -102,7 +139,7 @@ export const saveGuestRecord = mutation({
       }
       
       // Extract base visitor ID (before the nickname suffix)
-      const baseVisitorId = args.fingerprint.visitorId.split("_")[0];
+      const baseVisitorId = validatedData.fingerprint.visitorId.split("_")[0];
       
       // Check if this device (base visitor ID) is already registered for this event
       const allGuestsForEvent = await ctx.db
@@ -120,10 +157,10 @@ export const saveGuestRecord = mutation({
       
       const guestId = await ctx.db.insert("guests", {
         eventId: args.eventId,
-        nickname: args.nickname,
-        email: args.email,
-        socialHandle: args.socialHandle,
-        fingerprint: args.fingerprint,
+        nickname: validatedData.nickname,
+        email: validatedData.email,
+        socialHandle: validatedData.socialHandle,
+        fingerprint: validatedData.fingerprint,
       });
       
       return guestId;
@@ -148,6 +185,11 @@ export const getGuestList = query({
       }),
     })),
     handler: async (ctx, args) => {
+      // Validate user and event IDs (basic validation since they're already Convex ID types)
+      if (!args.eventId || !args.userId) {
+        throw new Error("Event ID and User ID are required");
+      }
+      
       // Verify event exists and user owns it
       await verifyEventOwnershipByEventId(ctx, args.eventId, args.userId);
       
@@ -172,6 +214,17 @@ export const getGuestList = query({
     },
     returns: v.id("guests"),
     handler: async (ctx, args) => {
+      // Validate input data with Zod
+      const dataToValidate = {
+        guestId: args.guestId as string,
+        userId: args.userId as string,
+        nickname: args.nickname,
+        email: args.email,
+        socialHandle: args.socialHandle,
+        fingerprint: args.fingerprint,
+      };
+      const validatedData = validateWithZod<UpdateGuest>(UpdateGuestSchema, dataToValidate, "updateGuestRecord");
+      
       const { guestId, userId, ...updates } = args;
       
       // Verify ownership before updating
@@ -194,6 +247,13 @@ export const deleteGuestRecord = mutation({
     },
     returns: v.object({ success: v.boolean() }),
     handler: async (ctx, args) => {
+      // Validate input data with Zod
+      const dataToValidate = {
+        guestId: args.guestId as string,
+        userId: args.userId as string,
+      };
+      validateWithZod(DeleteGuestSchema, dataToValidate, "deleteGuestRecord");
+      
       // Verify ownership before deleting
       await verifyGuestOwnership(ctx, args.guestId, args.userId);
       

@@ -37,41 +37,18 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
-type EventFormData = {
-  name: string;
-  eventType: string;
-  location: {
-    address: string;
-    city: string;
-    region: string;
-    postal: string;
-    country: string;
-  };
-  startDate: Date | undefined;
-  endDate: Date | undefined;
-  basePackage: {
-    dailyRate: number;
-    totalDays: number;
-    totalBasePrice: number;
-  };
-  guestPackage: {
-    tier: "0-100" | "100-200" | "200-300";
-    maxGuests: number;
-    additionalPrice: number;
-  };
-  reviewMode: boolean;
-  videoPackage: {
-    enabled: boolean;
-    price: number;
-  };
-  captureLimitId: string;
-  addOns: {
-    filter: boolean;
-    brandedQR: boolean;
-  };
-  terms: boolean;
-  price: number;
-};
+// Import react-hook-form and Zod
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { EventFormSchema, type EventForm } from "@/lib/validations";
 
 const eventTypes = [
   "Music Festival",
@@ -89,178 +66,166 @@ const eventTypes = [
   "Concert",
 ];
 
-const guestTierOptions = ["0-100", "100-200", "200-300"];
+// Helper function to get price per guest for capture plans (from database)
+const getCapturePlanPricing = (captureLimit: {
+  pricePerGuest: number;
+}): number => {
+  return captureLimit.pricePerGuest;
+};
+
+// Base daily rate
+const BASE_DAILY_RATE = 20;
 
 export default function CreateEventPage() {
   const router = useRouter();
   const { user } = useUser();
   const createEvent = useMutation(api.events.createEvent);
   const captureLimits = useQuery(api.captureLimits.getCaptureLimits);
+  const guestPackages = useQuery(api.guestPackages.getGuestPackageTiers);
   const convexUser = useQuery(api.users.currentUser);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<EventFormData>({
-    name: "",
-    eventType: "",
-    location: {
-      address: "",
-      city: "",
-      region: "",
-      postal: "",
-      country: "",
+
+  // Initialize react-hook-form with Zod validation
+  const form = useForm<EventForm>({
+    resolver: zodResolver(EventFormSchema),
+    defaultValues: {
+      name: "",
+      eventType: "Wedding" as const,
+      location: {
+        address: "",
+        city: "",
+        region: "",
+        postal: "",
+        country: "",
+      },
+      startDate: undefined,
+      endDate: undefined,
+      startTime: "09:00",
+      endTime: "17:00",
+      guestPackageId: "",
+      reviewMode: false,
+      videoPackage: false,
+      captureLimitId: "",
+      addOns: {
+        filter: false,
+        brandedQR: false,
+      },
+      terms: false,
     },
-    startDate: undefined,
-    endDate: undefined,
-    basePackage: {
-      dailyRate: 20,
-      totalDays: 1,
-      totalBasePrice: 20,
-    },
-    guestPackage: {
-      tier: "0-100",
-      maxGuests: 100,
-      additionalPrice: 150,
-    },
-    reviewMode: false,
-    videoPackage: {
-      enabled: false,
-      price: 0,
-    },
-    captureLimitId: "",
-    addOns: {
-      filter: false,
-      brandedQR: false,
-    },
-    terms: false,
-    price: 0,
   });
 
+  // Watch form values for live pricing
+  const watchedValues = form.watch();
+
+  // Helper functions - defined before use
   const calculateTotalDays = (start: Date, end: Date) => {
     const timeDiff = end.getTime() - start.getTime();
     return Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1; // +1 to include both start and end days
   };
 
-  const updateFormData = (field: string, value: any) => {
-    setFormData((prev) => {
-      if (field.includes(".")) {
-        const [parent, child] = field.split(".");
-        const updated = {
-          ...prev,
-          [parent]: {
-            ...(prev as any)[parent],
-            [child]: value,
-          },
-        };
-
-        // Auto-calculate base package pricing
-        if (
-          parent === "basePackage" ||
-          field === "startDate" ||
-          field === "endDate"
-        ) {
-          if (updated.startDate && updated.endDate) {
-            const totalDays = calculateTotalDays(
-              updated.startDate,
-              updated.endDate
-            );
-            updated.basePackage.totalDays = totalDays;
-            updated.basePackage.totalBasePrice =
-              updated.basePackage.dailyRate * totalDays;
-          }
-        }
-
-        // Auto-calculate guest package pricing
-        if (parent === "guestPackage" && child === "tier") {
-          const tierPricing: Record<
-            "0-100" | "100-200" | "200-300",
-            { maxGuests: number; additionalPrice: number }
-          > = {
-            "0-100": { maxGuests: 100, additionalPrice: 150 },
-            "100-200": { maxGuests: 200, additionalPrice: 300 },
-            "200-300": { maxGuests: 300, additionalPrice: 450 },
-          };
-          const tier = value as "0-100" | "100-200" | "200-300";
-          updated.guestPackage.maxGuests = tierPricing[tier].maxGuests;
-          updated.guestPackage.additionalPrice =
-            tierPricing[tier].additionalPrice;
-        }
-
-        // Auto-calculate video package pricing
-        if (parent === "videoPackage" && child === "enabled") {
-          updated.videoPackage.price = value ? 49 : 0;
-        }
-
-        // Auto-calculate total price
-        updated.price =
-          updated.basePackage.totalBasePrice +
-          updated.guestPackage.additionalPrice +
-          updated.videoPackage.price;
-
-        return updated;
-      }
-
-      const updated = { ...prev, [field]: value };
-
-      // Handle date changes
-      if (field === "startDate" || field === "endDate") {
-        if (updated.startDate && updated.endDate) {
-          const totalDays = calculateTotalDays(
-            updated.startDate,
-            updated.endDate
-          );
-          updated.basePackage.totalDays = totalDays;
-          updated.basePackage.totalBasePrice =
-            updated.basePackage.dailyRate * totalDays;
-          updated.price =
-            updated.basePackage.totalBasePrice +
-            updated.guestPackage.additionalPrice +
-            updated.videoPackage.price;
-        }
-      }
-
-      return updated;
-    });
+  const combineDateTime = (date: Date, time: string): Date => {
+    const [hours, minutes] = time.split(":").map(Number);
+    const combined = new Date(date);
+    combined.setHours(hours, minutes, 0, 0);
+    return combined;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Calculate pricing in real-time based on form values
+  const calculatePricing = () => {
+    const startDate = form.watch("startDate");
+    const endDate = form.watch("endDate");
+    const guestPackageId = form.watch("guestPackageId");
+    const captureLimitId = form.watch("captureLimitId");
+    const videoPackage = form.watch("videoPackage");
 
+    // Base package calculation
+    const totalDays =
+      startDate && endDate ? calculateTotalDays(startDate, endDate) : 1;
+    const basePackagePrice = BASE_DAILY_RATE * totalDays;
+
+    // Guest package pricing
+    const selectedGuestPackage = guestPackages?.find(
+      (pkg) => pkg._id === guestPackageId
+    );
+    const guestPackagePrice = selectedGuestPackage?.price || 0;
+
+    // Video package pricing
+    const videoPackagePrice = videoPackage ? 49 : 0;
+
+    // Capture package pricing
+    const selectedCaptureLimit = captureLimits?.find(
+      (limit) => limit._id === captureLimitId
+    );
+    const capturePackagePrice =
+      selectedCaptureLimit && selectedGuestPackage
+        ? selectedCaptureLimit.pricePerGuest * selectedGuestPackage.maxGuests
+        : 0;
+
+    // Total price
+    const totalPrice =
+      basePackagePrice +
+      guestPackagePrice +
+      videoPackagePrice +
+      capturePackagePrice;
+
+    return {
+      basePackage: {
+        price: basePackagePrice,
+        totalDays,
+        description: `Base Package (${totalDays} ${totalDays === 1 ? "day" : "days"})`,
+      },
+      guestPackage: {
+        price: guestPackagePrice,
+        description: selectedGuestPackage
+          ? `Guest Package (${selectedGuestPackage.tier})`
+          : "Guest Package",
+      },
+      videoPackage: {
+        price: videoPackagePrice,
+        description: "Video Package",
+      },
+      capturePackage: {
+        price: capturePackagePrice,
+        description:
+          selectedCaptureLimit && selectedGuestPackage
+            ? `Capture Package ($${selectedCaptureLimit.pricePerGuest} × ${selectedGuestPackage.maxGuests} guests)`
+            : "Capture Package",
+      },
+      totalPrice,
+      selectedGuestPackage,
+      selectedCaptureLimit,
+    };
+  };
+
+  const pricing = calculatePricing();
+
+  const onSubmit = async (data: EventForm) => {
     if (!convexUser?._id) {
       toast.error("You must be logged in to create an event");
-      return;
-    }
-
-    if (!formData.startDate || !formData.endDate) {
-      toast.error("Please select both start and end dates");
-      return;
-    }
-
-    if (!formData.terms) {
-      toast.error("Please accept the terms and conditions");
-      return;
-    }
-
-    if (!formData.captureLimitId) {
-      toast.error("Please select a capture plan");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      // Combine date and time for accurate timestamps
+      const startDateTime = combineDateTime(data.startDate, data.startTime);
+      const endDateTime = combineDateTime(data.endDate, data.endTime);
+
       const eventId = await createEvent({
         userId: convexUser._id,
-        name: formData.name,
-        eventType: formData.eventType as any,
-        location: formData.location,
-        startDate: formData.startDate.getTime(),
-        endDate: formData.endDate.getTime(),
+        name: data.name,
+        eventType: data.eventType as any,
+        location: data.location,
+        startDate: startDateTime.getTime(),
+        endDate: endDateTime.getTime(),
         status: "upcoming",
-        guestTier: formData.guestPackage.tier,
-        reviewMode: formData.reviewMode,
-        captureLimitId: formData.captureLimitId as any,
-        addOns: formData.addOns,
-        terms: formData.terms,
+        guestPackageId: data.guestPackageId as any,
+        reviewMode: data.reviewMode,
+        captureLimitId: data.captureLimitId as any,
+        addOns: data.addOns,
+        terms: data.terms,
       });
 
       toast.success("Event created successfully!");
@@ -273,7 +238,7 @@ export default function CreateEventPage() {
     }
   };
 
-  if (!captureLimits) {
+  if (!captureLimits || !guestPackages) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
         <div className="max-w-4xl mx-auto">
@@ -308,362 +273,868 @@ export default function CreateEventPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Basic Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Basic Information</h3>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-8"
+              >
+                {/* Basic Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">
+                    Basic Information
+                  </h3>
 
-                <div>
-                  <Label htmlFor="name">Event Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => updateFormData("name", e.target.value)}
-                    placeholder="Enter event name"
-                    required
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Event Name *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter event name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="eventType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Event Type *</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select event type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {eventTypes.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="eventType">Event Type *</Label>
-                  <Select
-                    value={formData.eventType}
-                    onValueChange={(value) =>
-                      updateFormData("eventType", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select event type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {eventTypes.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                {/* Location */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">
+                    Location
+                  </h3>
 
-              {/* Location */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Location</h3>
-
-                <div>
-                  <Label htmlFor="address">Address *</Label>
-                  <Input
-                    id="address"
-                    value={formData.location.address}
-                    onChange={(e) =>
-                      updateFormData("location.address", e.target.value)
-                    }
-                    placeholder="Street address"
-                    required
+                  <FormField
+                    control={form.control}
+                    name="location.address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Street address" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="location.city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="City" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="location.region"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Region/State *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="State/Province" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="location.postal"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Postal Code *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Postal code" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="location.country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Country *</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Country" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="city">City *</Label>
-                    <Input
-                      id="city"
-                      value={formData.location.city}
-                      onChange={(e) =>
-                        updateFormData("location.city", e.target.value)
-                      }
-                      placeholder="City"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="region">Region/State *</Label>
-                    <Input
-                      id="region"
-                      value={formData.location.region}
-                      onChange={(e) =>
-                        updateFormData("location.region", e.target.value)
-                      }
-                      placeholder="State/Province"
-                    />
-                  </div>
-                </div>
+                {/* Event Dates */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">
+                    Event Dates & Times
+                  </h3>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="postal">Postal Code *</Label>
-                    <Input
-                      id="postal"
-                      value={formData.location.postal}
-                      onChange={(e) =>
-                        updateFormData("location.postal", e.target.value)
-                      }
-                      placeholder="Postal code"
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="startDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Start Date & Time *</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {field.value && form.watch("startTime")
+                                    ? `${format(field.value, "PPP")} at ${form.watch("startTime")}`
+                                    : "Pick start date & time"}
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <div className="p-4 space-y-4">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  initialFocus
+                                />
+                                <div className="border-t pt-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="startTime"
+                                    render={({ field: timeField }) => (
+                                      <FormItem>
+                                        <FormLabel className="text-sm font-medium">
+                                          Start Time
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="time"
+                                            {...timeField}
+                                            className="mt-1"
+                                          />
+                                        </FormControl>
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="endDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>End Date & Time *</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {field.value && form.watch("endTime")
+                                    ? `${format(field.value, "PPP")} at ${form.watch("endTime")}`
+                                    : "Pick end date & time"}
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <div className="p-4 space-y-4">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  initialFocus
+                                />
+                                <div className="border-t pt-4">
+                                  <FormField
+                                    control={form.control}
+                                    name="endTime"
+                                    render={({ field: timeField }) => (
+                                      <FormItem>
+                                        <FormLabel className="text-sm font-medium">
+                                          End Time
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Input
+                                            type="time"
+                                            {...timeField}
+                                            className="mt-1"
+                                          />
+                                        </FormControl>
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="country">Country *</Label>
-                    <Input
-                      id="country"
-                      value={formData.location.country}
-                      onChange={(e) =>
-                        updateFormData("location.country", e.target.value)
-                      }
-                      placeholder="Country"
-                    />
-                  </div>
-                </div>
-              </div>
 
-              {/* Dates */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Event Dates</h3>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Start Date *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !formData.startDate && "text-muted-foreground"
+                  {form.watch("startDate") && form.watch("endDate") && (
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm text-blue-700">
+                            Duration:{" "}
+                            {calculateTotalDays(
+                              form.watch("startDate"),
+                              form.watch("endDate")
+                            )}{" "}
+                            day(s)
+                          </p>
+                          {form.watch("startTime") && form.watch("endTime") && (
+                            <p className="text-sm text-blue-700">
+                              Start:{" "}
+                              {form.watch("startDate")
+                                ? format(form.watch("startDate"), "PPP")
+                                : ""}{" "}
+                              at {form.watch("startTime")}
+                              <br />
+                              End:{" "}
+                              {form.watch("endDate")
+                                ? format(form.watch("endDate"), "PPP")
+                                : ""}{" "}
+                              at {form.watch("endTime")}
+                            </p>
                           )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formData.startDate
-                            ? format(formData.startDate, "PPP")
-                            : "Pick start date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={formData.startDate}
-                          onSelect={(date) => updateFormData("startDate", date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div>
-                    <Label>End Date *</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !formData.endDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formData.endDate
-                            ? format(formData.endDate, "PPP")
-                            : "Pick end date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={formData.endDate}
-                          onSelect={(date) => updateFormData("endDate", date)}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-blue-700 font-medium">
+                            Base Package: $
+                            {BASE_DAILY_RATE *
+                              (form.watch("startDate") && form.watch("endDate")
+                                ? calculateTotalDays(
+                                    form.watch("startDate"),
+                                    form.watch("endDate")
+                                  )
+                                : 0)}
+                          </p>
+                          <p className="text-xs text-blue-600">
+                            ${BASE_DAILY_RATE}/day ×{" "}
+                            {form.watch("startDate") && form.watch("endDate")
+                              ? calculateTotalDays(
+                                  form.watch("startDate"),
+                                  form.watch("endDate")
+                                )
+                              : 0}{" "}
+                            days
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-
-                {formData.startDate && formData.endDate && (
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-700">
-                      Duration: {formData.basePackage.totalDays} day(s)
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Pricing Packages */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Pricing Packages</h3>
 
                 {/* Guest Package */}
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-3">Guest Package</h4>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="guestTier">Guest Tier</Label>
-                      <Select
-                        value={formData.guestPackage.tier}
-                        onValueChange={(value) =>
-                          updateFormData("guestPackage.tier", value)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select guest tier" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {guestTierOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option} guests
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">
+                    Guest Package
+                  </h3>
+
+                  <FormField
+                    control={form.control}
+                    name="guestPackageId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Guest Package</FormLabel>
+                        <FormControl>
+                          <div className="grid grid-cols-3 gap-3">
+                            {guestPackages.map((guestPackage) => (
+                              <div
+                                key={guestPackage._id}
+                                className={cn(
+                                  "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                                  field.value === guestPackage._id
+                                    ? "border-blue-500 bg-blue-50"
+                                    : "border-gray-200 hover:border-gray-300"
+                                )}
+                                onClick={() => field.onChange(guestPackage._id)}
+                              >
+                                <div className="text-center">
+                                  <h5 className="font-medium">
+                                    {guestPackage.tier} guests
+                                  </h5>
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    Up to {guestPackage.maxGuests} guests
+                                  </p>
+                                  <p className="text-lg font-bold text-green-600 mt-2">
+                                    +${guestPackage.price}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Review Mode */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">
+                    Review Mode
+                  </h3>
+
+                  <FormField
+                    control={form.control}
+                    name="reviewMode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div
+                              className={cn(
+                                "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                                !field.value
+                                  ? "border-blue-500 bg-blue-50"
+                                  : "border-gray-200 hover:border-gray-300"
+                              )}
+                              onClick={() => field.onChange(false)}
+                            >
+                              <div className="text-center">
+                                <h5 className="font-medium">
+                                  Disposable Camera
+                                </h5>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  Photos are automatically deleted after 24
+                                  hours
+                                </p>
+                                <p className="text-sm font-medium text-green-600 mt-2">
+                                  Included
+                                </p>
+                              </div>
+                            </div>
+                            <div
+                              className={cn(
+                                "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                                field.value
+                                  ? "border-blue-500 bg-blue-50"
+                                  : "border-gray-200 hover:border-gray-300"
+                              )}
+                              onClick={() => field.onChange(true)}
+                            >
+                              <div className="text-center">
+                                <h5 className="font-medium">
+                                  Review Gallery Photos
+                                </h5>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  Photos can be reviewed by the event organizer
+                                </p>
+                                <p className="text-sm font-medium text-green-600 mt-2">
+                                  Included
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Video Package Selection */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">
+                    Media Package
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div
+                      className={cn(
+                        "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                        !form.watch("videoPackage")
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      )}
+                      onClick={() => {
+                        form.setValue("videoPackage", false);
+                        form.setValue("captureLimitId", ""); // Reset capture plan selection
+                      }}
+                    >
+                      <div className="text-center">
+                        <h5 className="font-medium">Photos Only</h5>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Capture photos only at your event
+                        </p>
+                        <p className="text-sm font-medium text-green-600 mt-2">
+                          Included
+                        </p>
+                      </div>
+                    </div>
+                    <div
+                      className={cn(
+                        "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                        form.watch("videoPackage")
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      )}
+                      onClick={() => {
+                        form.setValue("videoPackage", true);
+                        form.setValue("captureLimitId", ""); // Reset capture plan selection
+                      }}
+                    >
+                      <div className="text-center">
+                        <h5 className="font-medium">Photos + Videos</h5>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Capture both photos and videos
+                        </p>
+                        <p className="text-lg font-bold text-blue-600 mt-2">
+                          +$49
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Video Package */}
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-3">Video Package</h4>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="videoEnabled"
-                        checked={formData.videoPackage.enabled}
-                        onCheckedChange={(checked) =>
-                          updateFormData("videoPackage.enabled", checked)
-                        }
-                      />
-                      <Label htmlFor="videoEnabled">Enable Video Capture</Label>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600">
-                        Price: ${formData.videoPackage.price}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                {/* Capture Settings */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">
+                    Capture Settings
+                  </h3>
+                  <div>
+                    <FormField
+                      control={form.control}
+                      name="captureLimitId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Select Capture Plan *</FormLabel>
+                          <FormControl>
+                            <div className="grid grid-cols-1 gap-3">
+                              {captureLimits
+                                .filter((limit) => {
+                                  const hasVideoPackage =
+                                    form.watch("videoPackage");
+                                  if (hasVideoPackage) {
+                                    return limit.planType === "photos-videos";
+                                  } else {
+                                    return limit.planType === "photos-only";
+                                  }
+                                })
+                                .map((limit) => {
+                                  const isSelected = field.value === limit._id;
+                                  const selectedGuestPackageId =
+                                    form.watch("guestPackageId");
+                                  const selectedGuestPackage =
+                                    guestPackages.find(
+                                      (pkg) =>
+                                        pkg._id === selectedGuestPackageId
+                                    );
+                                  const maxGuests =
+                                    selectedGuestPackage?.maxGuests || 0;
+                                  const totalCapturePrice =
+                                    limit.pricePerGuest * maxGuests;
 
-                {/* Total Price */}
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-semibold text-green-800">
-                      Total Event Price
-                    </h4>
-                    <p className="text-2xl font-bold text-green-800">
-                      ${formData.price}
+                                  return (
+                                    <div
+                                      key={limit._id}
+                                      className={cn(
+                                        "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                                        isSelected
+                                          ? "border-blue-500 bg-blue-50"
+                                          : "border-gray-200 hover:border-gray-300"
+                                      )}
+                                      onClick={() => field.onChange(limit._id)}
+                                    >
+                                      <div className="flex justify-between items-center">
+                                        <div>
+                                          <h5 className="font-medium">
+                                            {limit.plan} Plan
+                                          </h5>
+                                          <p className="text-sm text-gray-600">
+                                            {limit.planType === "photos-only"
+                                              ? "Photos Only"
+                                              : "Photos + Videos"}
+                                            {limit.photo === -1
+                                              ? " (Unlimited photos"
+                                              : ` (${limit.photo} photos`}
+                                            {limit.planType ===
+                                              "photos-videos" &&
+                                              limit.video &&
+                                              limit.video > 0 &&
+                                              `, ${limit.video} videos`}
+                                            )
+                                          </p>
+                                          {limit.pricePerGuest > 0 && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                              ${limit.pricePerGuest} per guest ×{" "}
+                                              {maxGuests} guests
+                                            </p>
+                                          )}
+                                        </div>
+                                        <div className="text-right">
+                                          {limit.pricePerGuest > 0 ? (
+                                            <p className="text-lg font-bold text-blue-600">
+                                              +${totalCapturePrice}
+                                            </p>
+                                          ) : (
+                                            <p className="text-sm font-medium text-green-600">
+                                              Included
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <p className="text-sm text-gray-600 mt-1">
+                      {form.watch("videoPackage")
+                        ? "Choose a plan that includes both photos and videos."
+                        : "Choose a plan for photos only."}
                     </p>
                   </div>
-                  <div className="text-sm text-green-600 mt-2">
-                    Base: ${formData.basePackage.totalBasePrice} + Guests: $
-                    {formData.guestPackage.additionalPrice} + Video: $
-                    {formData.videoPackage.price}
+                </div>
+
+                {/* Add-ons */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">
+                    Add-ons
+                  </h3>
+
+                  <FormField
+                    control={form.control}
+                    name="addOns"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div
+                              className={cn(
+                                "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                                !field.value.filter && !field.value.brandedQR
+                                  ? "border-blue-500 bg-blue-50"
+                                  : "border-gray-200 hover:border-gray-300"
+                              )}
+                              onClick={() =>
+                                field.onChange({
+                                  filter: false,
+                                  brandedQR: false,
+                                })
+                              }
+                            >
+                              <div className="text-center">
+                                <h5 className="font-medium">None</h5>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  No additional features
+                                </p>
+                                <p className="text-sm font-medium text-green-600 mt-2">
+                                  Free
+                                </p>
+                              </div>
+                            </div>
+
+                            <div
+                              className={cn(
+                                "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                                field.value.filter
+                                  ? "border-blue-500 bg-blue-50"
+                                  : "border-gray-200 hover:border-gray-300"
+                              )}
+                              onClick={() =>
+                                field.onChange({
+                                  filter: !field.value.filter,
+                                  brandedQR: field.value.brandedQR,
+                                })
+                              }
+                            >
+                              <div className="text-center">
+                                <h5 className="font-medium">Enable Filters</h5>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  Add photo filters to your event
+                                </p>
+                                <p className="text-sm font-medium text-green-600 mt-2">
+                                  Included
+                                </p>
+                              </div>
+                            </div>
+
+                            <div
+                              className={cn(
+                                "p-4 border-2 rounded-lg cursor-pointer transition-all",
+                                field.value.brandedQR
+                                  ? "border-blue-500 bg-blue-50"
+                                  : "border-gray-200 hover:border-gray-300"
+                              )}
+                              onClick={() =>
+                                field.onChange({
+                                  filter: field.value.filter,
+                                  brandedQR: !field.value.brandedQR,
+                                })
+                              }
+                            >
+                              <div className="text-center">
+                                <h5 className="font-medium">Branded QR Code</h5>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  Custom branded QR code for your event
+                                </p>
+                                <p className="text-sm font-medium text-green-600 mt-2">
+                                  Included
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {(form.watch("addOns.filter") ||
+                    form.watch("addOns.brandedQR")) && (
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-blue-700">
+                        Selected add-ons:{" "}
+                        {[
+                          form.watch("addOns.filter") && "Enable Filters",
+                          form.watch("addOns.brandedQR") && "Branded QR Code",
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Live Pricing Summary */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">
+                    Pricing Summary
+                  </h3>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        {/* Pricing Breakdown */}
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-700">
+                              {pricing.basePackage.description}
+                            </span>
+                            <span className="font-medium">
+                              ${pricing.basePackage.price}
+                            </span>
+                          </div>
+                          {pricing.selectedGuestPackage && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-700">
+                                {pricing.guestPackage.description}
+                              </span>
+                              <span className="font-medium">
+                                ${pricing.guestPackage.price}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-700">
+                              {pricing.videoPackage.description}
+                            </span>
+                            <span className="font-medium">
+                              ${pricing.videoPackage.price}
+                            </span>
+                          </div>
+                          {pricing.selectedCaptureLimit &&
+                            pricing.selectedGuestPackage && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-700">
+                                  {pricing.capturePackage.description}
+                                </span>
+                                <span className="font-medium">
+                                  ${pricing.capturePackage.price}
+                                </span>
+                              </div>
+                            )}
+                        </div>
+
+                        <hr className="border-gray-200" />
+
+                        {/* Total */}
+                        <div className="flex justify-between items-center">
+                          <span className="text-xl font-bold">Total Price</span>
+                          <span className="text-3xl font-bold text-green-600">
+                            ${pricing.totalPrice}
+                          </span>
+                        </div>
+
+                        {/* What's Included Summary */}
+                        {(pricing.selectedGuestPackage ||
+                          pricing.selectedCaptureLimit) && (
+                          <div className="bg-blue-50 p-4 rounded-lg">
+                            <p className="text-sm text-gray-700">
+                              <strong>What&apos;s included:</strong>
+                              <br />• {pricing.basePackage.totalDays} day
+                              {pricing.basePackage.totalDays !== 1
+                                ? "s"
+                                : ""}{" "}
+                              of event coverage
+                              {pricing.selectedGuestPackage && (
+                                <>
+                                  <br />• Up to{" "}
+                                  {pricing.selectedGuestPackage.maxGuests}{" "}
+                                  guests
+                                </>
+                              )}
+                              {pricing.selectedCaptureLimit && (
+                                <>
+                                  <br />•{" "}
+                                  {!pricing.selectedCaptureLimit.photo ||
+                                  pricing.selectedCaptureLimit.photo === -1
+                                    ? "Unlimited"
+                                    : pricing.selectedCaptureLimit.photo}{" "}
+                                  photos
+                                  {pricing.selectedCaptureLimit.planType !==
+                                    "photos-only" &&
+                                    pricing.selectedCaptureLimit.video && (
+                                      <>
+                                        <br />•{" "}
+                                        {pricing.selectedCaptureLimit.video ===
+                                        -1
+                                          ? "Unlimited"
+                                          : pricing.selectedCaptureLimit
+                                              .video}{" "}
+                                        videos
+                                      </>
+                                    )}
+                                </>
+                              )}
+                              {form.watch("addOns.filter") && (
+                                <>
+                                  <br />• Photo filters enabled
+                                </>
+                              )}
+                              {form.watch("addOns.brandedQR") && (
+                                <>
+                                  <br />• Custom branded QR code
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Terms */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">
+                    Terms & Conditions
+                  </h3>
+
+                  <div className="flex items-center space-x-2">
+                    <FormField
+                      control={form.control}
+                      name="terms"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              required
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Label htmlFor="terms">
+                      I agree to the terms and conditions *
+                    </Label>
                   </div>
                 </div>
-              </div>
 
-              {/* Capture Settings */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Capture Settings</h3>
-
-                <div>
-                  <Label htmlFor="captureLimitId">Capture Plan *</Label>
-                  <Select
-                    value={formData.captureLimitId}
-                    onValueChange={(value) =>
-                      updateFormData("captureLimitId", value)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select capture plan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {captureLimits.map((limit) => (
-                        <SelectItem key={limit._id} value={limit._id}>
-                          {limit.plan} ({limit.planType})
-                          {limit.photo && ` - ${limit.photo} photos`}
-                          {limit.video && ` - ${limit.video} videos`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="reviewMode"
-                    checked={formData.reviewMode}
-                    onCheckedChange={(checked) =>
-                      updateFormData("reviewMode", checked)
-                    }
-                  />
-                  <Label htmlFor="reviewMode">Enable Review Mode</Label>
-                </div>
-              </div>
-
-              {/* Add-ons */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Add-ons</h3>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="filter"
-                    checked={formData.addOns.filter}
-                    onCheckedChange={(checked) =>
-                      updateFormData("addOns", {
-                        ...formData.addOns,
-                        filter: checked,
-                      })
-                    }
-                  />
-                  <Label htmlFor="filter">Enable Filters</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="brandedQR"
-                    checked={formData.addOns.brandedQR}
-                    onCheckedChange={(checked) =>
-                      updateFormData("addOns", {
-                        ...formData.addOns,
-                        brandedQR: checked,
-                      })
-                    }
-                  />
-                  <Label htmlFor="brandedQR">Branded QR Code</Label>
-                </div>
-              </div>
-
-              {/* Terms */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="terms"
-                  checked={formData.terms}
-                  onCheckedChange={(checked) =>
-                    updateFormData("terms", checked)
-                  }
-                  required
-                />
-                <Label htmlFor="terms">
-                  I agree to the terms and conditions *
-                </Label>
-              </div>
-
-              {/* Submit Buttons */}
-              <div className="flex gap-4">
-                <Link href="/dashboard" className="flex-1">
+                {/* Submit Buttons */}
+                <div className="flex gap-4 pt-4">
+                  <Link href="/dashboard" className="flex-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                  </Link>
                   <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
+                    type="submit"
+                    className="flex-1"
                     disabled={isSubmitting}
                   >
-                    Cancel
+                    {isSubmitting ? "Creating Event..." : "Create Event"}
                   </Button>
-                </Link>
-                <Button
-                  type="submit"
-                  className="flex-1"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Creating Event..." : "Create Event"}
-                </Button>
-              </div>
-            </form>
+                </div>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </div>

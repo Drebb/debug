@@ -1,6 +1,14 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+// Import Zod schemas for validation
+import { 
+  CreateGalleryItemSchema,
+  DeleteGalleryItemSchema,
+  GetGalleryByEventSchema,
+  type CreateGalleryItem
+} from "../src/lib/validations";
+
 // Helper function to verify event ownership
 async function verifyEventOwnership(ctx: { db: any }, eventId: string, userId: string) {
   const event = await ctx.db.get(eventId);
@@ -32,6 +40,16 @@ async function verifyGalleryOwnership(ctx: { db: any }, galleryId: string, userI
   return { galleryRecord, event };
 }
 
+// Helper function to validate data with Zod
+function validateWithZod<T>(schema: any, data: any, actionName: string): T {
+  try {
+    return schema.parse(data);
+  } catch (error: any) {
+    const errorMessage = error.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ') || error.message;
+    throw new Error(`Validation failed for ${actionName}: ${errorMessage}`);
+  }
+}
+
 export const generateUploadURL = mutation({
     args: {},
     returns: v.string(),
@@ -49,6 +67,14 @@ export const uploadToGalleryByGuest = mutation({
     },
     returns: v.id("gallery"),
     handler: async (ctx, args) => {
+        // Validate input data with Zod
+        const dataToValidate = {
+            eventId: args.eventId as string,
+            guestId: args.guestId as string,
+            fieldId: args.fileId as string,
+        };
+        const validatedData = validateWithZod<CreateGalleryItem>(CreateGalleryItemSchema, dataToValidate, "uploadToGalleryByGuest");
+        
         // Verify guest exists and belongs to this event
         const guest = await ctx.db.get(args.guestId);
         if (!guest || guest.eventId !== args.eventId) {
@@ -76,6 +102,13 @@ export const deleteFromGallery = mutation({
     },
     returns: v.null(),
     handler: async (ctx, args) => {
+        // Validate input data with Zod
+        const dataToValidate = {
+            galleryId: args.galleryId as string,
+            userId: args.userId as string,
+        };
+        validateWithZod(DeleteGalleryItemSchema, dataToValidate, "deleteFromGallery");
+        
         // Verify ownership before deletion
         const { galleryRecord } = await verifyGalleryOwnership(ctx, args.galleryId, args.userId);
 
@@ -128,6 +161,13 @@ export const getGalleryByEvent = query({
         fieldId: v.id("_storage"),
     })),
     handler: async (ctx, args) => {
+        // Validate input data with Zod
+        const dataToValidate = {
+            eventId: args.eventId as string,
+            userId: args.userId as string,
+        };
+        validateWithZod(GetGalleryByEventSchema, dataToValidate, "getGalleryByEvent");
+        
         // Verify ownership before showing gallery
         await verifyEventOwnership(ctx, args.eventId, args.userId);
         

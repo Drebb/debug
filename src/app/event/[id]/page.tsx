@@ -42,6 +42,7 @@ export default function EventDetailPage() {
   // Get Convex user (with _id)
   const currentUser = useQuery(api.users.currentUser);
   const convexUserId = currentUser?._id;
+  const guestPackages = useQuery(api.guestPackages.getGuestPackageTiers);
 
   const event = useQuery(
     api.events.getEventById,
@@ -95,15 +96,22 @@ export default function EventDetailPage() {
     );
     if (!confirm) return;
 
-    const result = await deleteEvent({
-      eventId,
-      userId: convexUserId,
-    });
-    if (result.success) {
-      alert("Event deleted.");
-      router.push("/dashboard");
-    } else {
-      alert("Failed to delete event.");
+    try {
+      const result = await deleteEvent({
+        eventId,
+        userId: convexUserId,
+      });
+
+      if (result.success) {
+        toast.success("Event deleted successfully!");
+        // Use replace to prevent going back to deleted event
+        router.replace("/dashboard");
+      } else {
+        toast.error("Failed to delete event.");
+      }
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      toast.error("Failed to delete event. Please try again.");
     }
   };
 
@@ -302,7 +310,9 @@ export default function EventDetailPage() {
                 </p>
                 <p>
                   <span className="font-semibold">Guest Tier:</span>{" "}
-                  {event.guestPackage.tier}
+                  {guestPackages?.find(
+                    (pkg) => pkg._id === event.guestPackageId
+                  )?.tier || "Unknown"}
                 </p>
                 <p>
                   <span className="font-semibold">Video:</span>{" "}
@@ -319,7 +329,9 @@ export default function EventDetailPage() {
             <CardContent>
               <p className="text-3xl font-bold text-green-600">{guestCount}</p>
               <p className="text-sm text-gray-500">
-                Max Guests: {event.guestPackage.maxGuests}
+                Max Guests:{" "}
+                {guestPackages?.find((pkg) => pkg._id === event.guestPackageId)
+                  ?.maxGuests || "Unknown"}
               </p>
             </CardContent>
           </Card>
@@ -373,10 +385,16 @@ export default function EventDetailPage() {
               <div>
                 <p className="text-sm text-gray-600">Guest Package</p>
                 <p className="text-lg font-semibold">
-                  ${event.guestPackage.additionalPrice}
+                  $
+                  {guestPackages?.find(
+                    (pkg) => pkg._id === event.guestPackageId
+                  )?.price || 0}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {event.guestPackage.tier} tier
+                  {guestPackages?.find(
+                    (pkg) => pkg._id === event.guestPackageId
+                  )?.tier || "Unknown"}{" "}
+                  tier
                 </p>
               </div>
               <div>
