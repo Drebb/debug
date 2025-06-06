@@ -41,22 +41,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 
 type EventStatus = "all" | "upcoming" | "live" | "past";
-
-// Helper to compute event status
-function getEventStatus(event: { startDate: string | number; endDate: string | number }) {
-  const now = Date.now();
-  const start = typeof event.startDate === "number" ? event.startDate : new Date(event.startDate).getTime();
-  const end = typeof event.endDate === "number" ? event.endDate : new Date(event.endDate).getTime();
-  if (now < start) return "upcoming";
-  if (now >= start && now <= end) return "live";
-  return "past";
-}
 
 export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<EventStatus>("all");
@@ -91,19 +81,29 @@ export default function Dashboard() {
   );
 
   // Use allEvents when no filter is applied, otherwise use filteredEvents
-  // Compute status on the fly for all events
-  const eventsWithComputedStatus = (allEvents || []).map(event => ({
-    ...event,
-    computedStatus: getEventStatus(event)
-  }));
-
-  // Filter events based on computed status
-  const eventsToDisplay = statusFilter === "all"
-    ? eventsWithComputedStatus
-    : eventsWithComputedStatus.filter(e => e.computedStatus === statusFilter);
+  const eventsToDisplay =
+    statusFilter === "all" ? allEvents || [] : filteredEvents || [];
 
   // Mutations
   const deleteEventMutation = useMutation(api.events.deleteEvent);
+  const updateEventStatusMutation = useMutation(api.events.updateEventStatus);
+
+  // Update event statuses when events are loaded
+  useEffect(() => {
+    if (eventsToDisplay && eventsToDisplay.length > 0 && userId) {
+      // Update all event statuses
+      eventsToDisplay.forEach((event) => {
+        updateEventStatusMutation({ eventId: event._id, userId }).catch(
+          (error) => {
+            console.error(
+              `Failed to update status for event ${event._id}:`,
+              error
+            );
+          }
+        );
+      });
+    }
+  }, [eventsToDisplay, userId, updateEventStatusMutation]);
 
   const handleDeleteEvent = async (eventId: Id<"events">) => {
     if (!userId) return;
@@ -314,15 +314,15 @@ export default function Dashboard() {
                       <div className="flex flex-wrap gap-2">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            event.computedStatus === "upcoming"
+                            event.status === "upcoming"
                               ? "bg-blue-100 text-blue-800"
-                              : event.computedStatus === "live"
+                              : event.status === "live"
                                 ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
+                                : "bg-red-100 text-red-800"
                           }`}
                         >
-                          {event.computedStatus.charAt(0).toUpperCase() +
-                            event.computedStatus.slice(1)}
+                          {event.status.charAt(0).toUpperCase() +
+                            event.status.slice(1)}
                         </span>
                         <span className="px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                           {event.eventType}
@@ -344,18 +344,33 @@ export default function Dashboard() {
                         View
                       </Button>
 
-                      <Link href={`/event/${event._id}/edit-event`}>
+                      {event.status === "live" || event.status === "past" ? (
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex items-center gap-1"
-                          disabled={event.computedStatus === "live"}
-                          title={event.computedStatus === "live" ? "Editing is disabled while event is live" : undefined}
+                          className="flex items-center gap-1 opacity-50 cursor-not-allowed"
+                          disabled={true}
+                          title={
+                            event.status === "live"
+                              ? "Editing is disabled while event is live"
+                              : "Editing is disabled because event has finished"
+                          }
                         >
                           <Edit className="h-3 w-3" />
                           Edit Event
                         </Button>
-                      </Link>
+                      ) : (
+                        <Link href={`/event/${event._id}/edit-event`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1"
+                          >
+                            <Edit className="h-3 w-3" />
+                            Edit Event
+                          </Button>
+                        </Link>
+                      )}
 
                       <AlertDialog>
                         <AlertDialogTrigger asChild>

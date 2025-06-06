@@ -83,6 +83,7 @@ export default function EditEventPage() {
   const eventId = id as Id<"events">;
 
   const updateEvent = useMutation(api.events.updateEvent);
+  const updateEventStatus = useMutation(api.events.updateEventStatus);
   const captureLimits = useQuery(api.captureLimits.getCaptureLimits);
   const guestPackages = useQuery(api.guestPackages.getGuestPackageTiers);
   const convexUser = useQuery(api.users.currentUser);
@@ -273,13 +274,24 @@ export default function EditEventPage() {
     }
   };
 
-  // Helper to check if event is live
-  const isEventLive = event && (() => {
-    const now = Date.now();
-    const start = typeof event.startDate === "number" ? event.startDate : new Date(event.startDate).getTime();
-    const end = typeof event.endDate === "number" ? event.endDate : new Date(event.endDate).getTime();
-    return now >= start && now <= end;
-  })();
+  // Update event status and check if redirect is needed
+  useEffect(() => {
+    if (event && event !== null && convexUser?._id) {
+      updateEventStatus({ eventId, userId: convexUser._id })
+        .then((newStatus) => {
+          if (newStatus === "live") {
+            toast.error("This event is currently live and cannot be edited");
+            router.replace("/dashboard");
+          } else if (newStatus === "past") {
+            toast.error("This event has already finished and cannot be edited");
+            router.replace("/dashboard");
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to update event status:", error);
+        });
+    }
+  }, [event, convexUser?._id, updateEventStatus, eventId, router]);
 
   if (!user?.id) {
     return (
@@ -324,23 +336,6 @@ export default function EditEventPage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center">Loading event data...</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isEventLive) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-4xl mx-auto">
-          <Card>
-            <CardContent className="p-6">
-              <p className="text-blue-700 font-semibold text-lg">This event is currently live and cannot be edited.</p>
-              <Button onClick={() => router.push(`/event/${eventId}`)} className="mt-4">
-                Back to Event
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
     );

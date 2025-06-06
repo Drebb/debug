@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { verifyEventOwnership, validateWithZod } from "./utils";
 
 // Import Zod schemas for validation
 import { 
@@ -11,28 +12,6 @@ import {
   type CreateEvent,
   type UpdateEvent
 } from "../src/lib/validations";
-
-// Helper function to validate data with Zod
-function validateWithZod<T>(schema: any, data: any, actionName: string): T {
-  try {
-    return schema.parse(data);
-  } catch (error: any) {
-    const errorMessage = error.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ') || error.message;
-    throw new Error(`Validation failed for ${actionName}: ${errorMessage}`);
-  }
-}
-
-// Helper function to verify event ownership
-async function verifyEventOwnership(ctx: { db: any }, eventId: string, userId: string) {
-  const event = await ctx.db.get(eventId);
-  if (!event) {
-    throw new Error("Event not found");
-  }
-  if (event.userId !== userId) {
-    throw new Error("Unauthorized: You don't own this event");
-  }
-  return event;
-}
 
 // Create event (Create new event) - Simplified version
 export const createEvent = mutation({

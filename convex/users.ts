@@ -9,6 +9,7 @@ import {
   import { v } from "convex/values";
   import { Doc, Id } from "./_generated/dataModel";
   import { UserJSON } from "@clerk/backend";
+  import { validateWithZod } from "./utils";
 
 // Import Zod schemas for validation
 import { 
@@ -21,16 +22,6 @@ import {
     first_name: string;
     last_name: string;
     clerkUser: UserJSON;
-  }
-
-  // Helper function to validate data with Zod
-  function validateWithZod<T>(schema: any, data: any, actionName: string): T {
-    try {
-      return schema.parse(data);
-    } catch (error: any) {
-      const errorMessage = error.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ') || error.message;
-      throw new Error(`Validation failed for ${actionName}: ${errorMessage}`);
-    }
   }
 
   /**

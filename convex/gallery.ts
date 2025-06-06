@@ -1,5 +1,12 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { 
+  verifyEventOwnership, 
+  verifyGalleryOwnership, 
+  validateWithZod,
+  generateGalleryFilename,
+  getFileMetadataWithUrl
+} from "./utils";
 
 // Import Zod schemas for validation
 import { 
@@ -8,47 +15,6 @@ import {
   GetGalleryByEventSchema,
   type CreateGalleryItem
 } from "../src/lib/validations";
-
-// Helper function to verify event ownership
-async function verifyEventOwnership(ctx: { db: any }, eventId: string, userId: string) {
-  const event = await ctx.db.get(eventId);
-  if (!event) {
-    throw new Error("Event not found");
-  }
-  if (event.userId !== userId) {
-    throw new Error("Unauthorized: You don't own this event");
-  }
-  return event;
-}
-
-// Helper function to verify gallery item ownership
-async function verifyGalleryOwnership(ctx: { db: any }, galleryId: string, userId: string) {
-  const galleryRecord = await ctx.db.get(galleryId);
-  if (!galleryRecord) {
-    throw new Error("Gallery item not found");
-  }
-  
-  const event = await ctx.db.get(galleryRecord.eventId);
-  if (!event) {
-    throw new Error("Event not found");
-  }
-  
-  if (event.userId !== userId) {
-    throw new Error("Unauthorized: You don't own this gallery item");
-  }
-  
-  return { galleryRecord, event };
-}
-
-// Helper function to validate data with Zod
-function validateWithZod<T>(schema: any, data: any, actionName: string): T {
-  try {
-    return schema.parse(data);
-  } catch (error: any) {
-    const errorMessage = error.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ') || error.message;
-    throw new Error(`Validation failed for ${actionName}: ${errorMessage}`);
-  }
-}
 
 export const generateUploadURL = mutation({
     args: {},
@@ -119,6 +85,56 @@ export const deleteFromGallery = mutation({
         await ctx.db.delete(args.galleryId);
         
         return null;
+    },
+});
+
+// Delete all images from an event gallery
+export const deleteAllImagesFromEvent = mutation({
+    args: {
+        eventId: v.id("events"),
+        userId: v.id("users"),
+    },
+    returns: v.object({
+        success: v.boolean(),
+        deletedCount: v.number(),
+    }),
+    handler: async (ctx, args) => {
+        // Validate input data with Zod
+        const dataToValidate = {
+            eventId: args.eventId as string,
+            userId: args.userId as string,
+        };
+        validateWithZod(GetGalleryByEventSchema, dataToValidate, "deleteAllImagesFromEvent");
+        
+        // Verify ownership before deletion
+        await verifyEventOwnership(ctx, args.eventId, args.userId);
+        
+        // Get all gallery items for this event
+        const galleryItems = await ctx.db
+            .query("gallery")
+            .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+            .collect();
+        
+        let deletedCount = 0;
+        
+        // Delete all gallery files for this event
+        for (const item of galleryItems) {
+            try {
+                // Delete the actual file from storage
+                await ctx.storage.delete(item.fieldId);
+                // Delete the gallery record
+                await ctx.db.delete(item._id);
+                deletedCount++;
+            } catch (error) {
+                console.error(`Failed to delete gallery item ${item._id}:`, error);
+                // Continue with other items even if one fails
+            }
+        }
+        
+        return {
+            success: true,
+            deletedCount,
+        };
     },
 });
 
@@ -208,20 +224,9 @@ export const getGalleryByGuest = query({
         const results = [];
 
         for (const item of galleryItems) {
-            // Get file metadata
-            const fileMetadata = await ctx.db.system.get(item.fieldId) as {
-                _id: any;
-                _creationTime: number;
-                contentType?: string;
-                sha256: string;
-                size: number;
-            } | null;
-            
-            if (!fileMetadata) continue;
-
-            // Get download URL
-            const url = await ctx.storage.getUrl(item.fieldId);
-            if (!url) continue;
+            // Use shared utility to get file metadata with URL
+            const fileData = await getFileMetadataWithUrl(ctx, item.fieldId);
+            if (!fileData) continue;
 
             // Get event info for filename
             const event = await ctx.db.get(item.eventId);
@@ -230,22 +235,15 @@ export const getGalleryByGuest = query({
             // Type assertion to ensure guest has the correct type
             const guestRecord = guest as { _id: any; nickname: string; [key: string]: any };
 
-            // Generate filename
-            const fileExtension = fileMetadata.contentType?.includes('image/jpeg') ? '.jpg' : 
-                                 fileMetadata.contentType?.includes('image/png') ? '.png' :
-                                 fileMetadata.contentType?.includes('image/webp') ? '.webp' :
-                                 fileMetadata.contentType?.includes('video/mp4') ? '.mp4' :
-                                 '';
-            
-            const date = new Date(item._creationTime);
-            const filename = `${event.name.replace(/[^a-zA-Z0-9]/g, '_')}_${guestRecord.nickname.replace(/[^a-zA-Z0-9]/g, '_')}_${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}_${date.getHours().toString().padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}-${date.getSeconds().toString().padStart(2, '0')}${fileExtension}`;
+            // Generate filename using shared utility
+            const filename = generateGalleryFilename(event.name, guestRecord.nickname, item._creationTime, fileData.contentType);
 
             results.push({
                 galleryId: item._id,
-                url,
+                url: fileData.url,
                 filename,
-                contentType: fileMetadata.contentType,
-                size: fileMetadata.size,
+                contentType: fileData.contentType,
+                size: fileData.size,
                 guestNickname: guestRecord.nickname,
                 uploadTime: item._creationTime,
             });
@@ -338,20 +336,9 @@ export const getAllImagesForDownload = query({
         const results = [];
 
         for (const item of galleryItems) {
-            // Get file metadata
-            const fileMetadata = await ctx.db.system.get(item.fieldId) as {
-                _id: any;
-                _creationTime: number;
-                contentType?: string;
-                sha256: string;
-                size: number;
-            } | null;
-            
-            if (!fileMetadata) continue;
-
-            // Get download URL
-            const url = await ctx.storage.getUrl(item.fieldId);
-            if (!url) continue;
+            // Use shared utility to get file metadata with URL
+            const fileData = await getFileMetadataWithUrl(ctx, item.fieldId);
+            if (!fileData) continue;
 
             // Get guest info
             const guest = await ctx.db.get(item.guestId);
@@ -360,22 +347,15 @@ export const getAllImagesForDownload = query({
             // Type assertion to ensure guest has the correct type
             const guestRecord = guest as { _id: any; nickname: string; [key: string]: any };
 
-            // Generate filename
-            const fileExtension = fileMetadata.contentType?.includes('image/jpeg') ? '.jpg' : 
-                                 fileMetadata.contentType?.includes('image/png') ? '.png' :
-                                 fileMetadata.contentType?.includes('image/webp') ? '.webp' :
-                                 fileMetadata.contentType?.includes('video/mp4') ? '.mp4' :
-                                 '';
-            
-            const date = new Date(item._creationTime);
-            const filename = `${event.name.replace(/[^a-zA-Z0-9]/g, '_')}_${guestRecord.nickname.replace(/[^a-zA-Z0-9]/g, '_')}_${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}_${date.getHours().toString().padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}-${date.getSeconds().toString().padStart(2, '0')}${fileExtension}`;
+            // Generate filename using shared utility
+            const filename = generateGalleryFilename(event.name, guestRecord.nickname, item._creationTime, fileData.contentType);
 
             results.push({
                 galleryId: item._id,
-                url,
+                url: fileData.url,
                 filename,
-                contentType: fileMetadata.contentType,
-                size: fileMetadata.size,
+                contentType: fileData.contentType,
+                size: fileData.size,
                 guestNickname: guestRecord.nickname,
                 uploadTime: item._creationTime,
             });
@@ -448,7 +428,7 @@ export const getShareableImageUrl = query({
     },
 });
 
-// Guest-specific functions - don't require userId, only guest authentication
+// Consolidated guest functions with improved functionality
 
 export const getGalleryByGuestForGuest = query({
     args: {
@@ -475,18 +455,18 @@ export const getGalleryByGuestForGuest = query({
             .withIndex("by_guest", (q) => q.eq("guestId", args.guestId))
             .collect();
         
-        // Get URLs for each item
+        // Get URLs for each item using shared utility
         const itemsWithUrls = await Promise.all(
             galleryItems.map(async (item) => {
-                const url = await ctx.storage.getUrl(item.fieldId);
-                return {
+                const fileData = await getFileMetadataWithUrl(ctx, item.fieldId);
+                return fileData ? {
                     ...item,
-                    url: url || "",
-                };
+                    url: fileData.url,
+                } : null;
             })
         );
         
-        return itemsWithUrls.filter(item => item.url); // Only return items with valid URLs
+        return itemsWithUrls.filter((item): item is NonNullable<typeof item> => item !== null); // Only return items with valid URLs
     },
 });
 
@@ -545,22 +525,22 @@ export const getEventGalleryForGuest = query({
             .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
             .collect();
         
-        // Get URLs and guest info for each item
+        // Get URLs and guest info for each item using shared utility
         const itemsWithUrls = await Promise.all(
             galleryItems.map(async (item) => {
-                const url = await ctx.storage.getUrl(item.fieldId);
+                const fileData = await getFileMetadataWithUrl(ctx, item.fieldId);
                 const itemGuest = await ctx.db.get(item.guestId);
                 
-                return {
+                return fileData ? {
                     ...item,
-                    url: url || "",
+                    url: fileData.url,
                     guestNickname: itemGuest?.nickname || "Unknown",
-                };
+                } : null;
             })
         );
         
         return itemsWithUrls
-            .filter(item => item.url) // Only return items with valid URLs
+            .filter((item): item is NonNullable<typeof item> => item !== null) // Only return items with valid URLs
             .sort((a, b) => b._creationTime - a._creationTime); // Newest first
     },
 });

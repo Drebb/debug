@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { verifyEventOwnership, verifyGuestOwnership, validateWithZod } from "./utils";
 
 // Import Zod schemas for validation
 import { 
@@ -10,47 +11,6 @@ import {
   type CreateGuest,
   type UpdateGuest
 } from "../src/lib/validations";
-
-// Helper function to verify event ownership via eventId
-async function verifyEventOwnershipByEventId(ctx: any, eventId: string, userId: string) {
-  const event = await ctx.db.get(eventId);
-  if (!event) {
-    throw new Error("Event not found");
-  }
-  if (event.userId !== userId) {
-    throw new Error("Unauthorized: You don't own this event");
-  }
-  return event;
-}
-
-// Helper function to verify guest ownership via guestId
-async function verifyGuestOwnership(ctx: any, guestId: string, userId: string) {
-  const guest = await ctx.db.get(guestId);
-  if (!guest) {
-    throw new Error("Guest not found");
-  }
-  
-  const event = await ctx.db.get(guest.eventId);
-  if (!event) {
-    throw new Error("Event not found");
-  }
-  
-  if (event.userId !== userId) {
-    throw new Error("Unauthorized: You don't own this guest");
-  }
-  
-  return { guest, event };
-}
-
-// Helper function to validate data with Zod
-function validateWithZod<T>(schema: any, data: any, actionName: string): T {
-  try {
-    return schema.parse(data);
-  } catch (error: any) {
-    const errorMessage = error.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ') || error.message;
-    throw new Error(`Validation failed for ${actionName}: ${errorMessage}`);
-  }
-}
 
 export const checkExistingRegistration = query({
   args: {
@@ -191,7 +151,7 @@ export const getGuestList = query({
       }
       
       // Verify event exists and user owns it
-      await verifyEventOwnershipByEventId(ctx, args.eventId, args.userId);
+      await verifyEventOwnership(ctx, args.eventId, args.userId);
       
       return await ctx.db
         .query("guests")
