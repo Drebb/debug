@@ -161,7 +161,6 @@ export const UpdateEventSchema = z.object({
   location: LocationSchema.optional(),
   startDate: z.number().optional(),
   endDate: z.number().optional(),
-  status: EventStatusSchema.optional(),
   guestPackageId: z.string().min(1, "Guest package ID is required").optional(),
   reviewMode: z.boolean().optional(),
   captureLimitId: z.string().min(1, "Capture limit ID is required").optional(),

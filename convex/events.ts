@@ -1,5 +1,7 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
+import { cronJobs } from "convex/server";
+import { internal } from "./_generated/api";
 import { verifyEventOwnership, validateWithZod } from "./utils";
 
 // Import Zod schemas for validation
@@ -325,11 +327,6 @@ export const updateEvent = mutation({
       })),
       startDate: v.optional(v.number()),
       endDate: v.optional(v.number()),
-      status: v.optional(v.union(
-        v.literal("upcoming"),
-        v.literal("live"), 
-        v.literal("past")
-      )),
       guestPackageId: v.optional(v.id("guestPackageTiers")),
       reviewMode: v.optional(v.boolean()),
       captureLimitId: v.optional(v.id("captureLimits")),
@@ -350,7 +347,6 @@ export const updateEvent = mutation({
         location: args.location,
         startDate: args.startDate,
         endDate: args.endDate,
-        status: args.status,
         guestPackageId: args.guestPackageId,
         reviewMode: args.reviewMode,
         captureLimitId: args.captureLimitId,
@@ -536,3 +532,59 @@ export const updateEventStatus = mutation({
       return newStatus;
     },
   });
+
+// Internal function to automatically update all event statuses
+export const updateAllEventStatuses = internalMutation({
+  args: {},
+  returns: v.object({
+    updatedCount: v.number(),
+    totalChecked: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    // Get all events
+    const allEvents = await ctx.db.query("events").collect();
+    
+    const now = Date.now();
+    let updatedCount = 0;
+    
+    for (const event of allEvents) {
+      let newStatus: "upcoming" | "live" | "past";
+      
+      if (now < event.startDate) {
+        newStatus = "upcoming";
+      } else if (now >= event.startDate && now <= event.endDate) {
+        newStatus = "live";
+      } else {
+        newStatus = "past";
+      }
+      
+      // Only update if status has changed
+      if (newStatus !== event.status) {
+        await ctx.db.patch(event._id, {
+          status: newStatus,
+          updatedAt: now,
+        });
+        updatedCount++;
+      }
+    }
+    
+    console.log(`Event status update completed: ${updatedCount} events updated out of ${allEvents.length} total events`);
+    
+    return {
+      updatedCount,
+      totalChecked: allEvents.length,
+    };
+  },
+});
+
+// Set up cron job to automatically update event statuses every hour
+const crons = cronJobs();
+
+crons.interval(
+  "update event statuses",
+  { hours: 1 }, // Run every hour
+  internal.events.updateAllEventStatuses,
+  {}
+);
+
+export default crons;
