@@ -17,10 +17,11 @@ import type * as analytics from "../analytics.js";
 import type * as captureLimits from "../captureLimits.js";
 import type * as events from "../events.js";
 import type * as gallery from "../gallery.js";
+import type * as guestPackages from "../guestPackages.js";
 import type * as guests from "../guests.js";
 import type * as http from "../http.js";
-import type * as pricing from "../pricing.js";
 import type * as users from "../users.js";
+import type * as utils from "../utils.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -35,10 +36,11 @@ declare const fullApi: ApiFromModules<{
   captureLimits: typeof captureLimits;
   events: typeof events;
   gallery: typeof gallery;
+  guestPackages: typeof guestPackages;
   guests: typeof guests;
   http: typeof http;
-  pricing: typeof pricing;
   users: typeof users;
+  utils: typeof utils;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

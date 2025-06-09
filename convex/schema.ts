@@ -22,7 +22,15 @@ export default defineSchema({
     }),
   })
     .index("by_event", ["eventId"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_fingerprint", ["fingerprint.visitorId"])
+    .index("by_event_and_fingerprint", ["eventId", "fingerprint.visitorId"]),
+
+  guestPackageTiers: defineTable({
+    tier: v.string(), // e.g., "0-100", "100-200", "200-300"
+    maxGuests: v.number(), // Maximum number of guests for this tier
+    price: v.number(), // Additional price on top of base package
+  }),
 
     events: defineTable({
       userId: v.id("users"),
@@ -64,15 +72,7 @@ export default defineSchema({
         totalDays: v.number(), //calculated from start/end dates
         totalBasePrice: v.number(), //dailyRate * totalDays
       }),
-      guestPackage: v.object({
-        tier: v.union(
-          v.literal("0-100"),
-          v.literal("100-200"),
-          v.literal("200-300")
-        ),
-        maxGuests: v.number(), //100, 200, 300
-        additionalPrice: v.number(), //80, 160, 240 (on top of base)
-      }),
+      guestPackageId: v.id("guestPackageTiers"), // Reference to the selected guest package tier
       reviewMode: v.boolean(),
       videoPackage: v.object({
         enabled: v.boolean(),
@@ -87,20 +87,19 @@ export default defineSchema({
       ),
       terms: v.boolean(),
       price: v.number(),
-      qrHash: v.string(),
-      qrRoute: v.string(),
       updatedAt: v.number(),
       paid: v.boolean(),
     }).index("by_user", ["userId"])
       .index("by_status", ["status"])
       .index("by_start_date", ["startDate"])
-      .index("by_qr_hash", ["qrHash"]),
+      .index("by_guest_package", ["guestPackageId"]),
 
       captureLimits: defineTable({
         plan: v.string(),
         planType: v.union(v.literal("photos-only"), v.literal("photos-videos"), v.literal("videos-only")),
         photo: v.optional(v.number()),
         video: v.optional(v.number()),
+        pricePerGuest: v.number(), // Price per guest for this capture plan
       }).index("by_plan", ["plan"]),
     
       gallery: defineTable({

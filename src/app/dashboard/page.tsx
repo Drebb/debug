@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { useMutation, useQuery } from "convex/react";
 import {
+  ArrowLeft,
   Calendar,
   Edit,
   Eye,
@@ -39,7 +40,8 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
@@ -48,6 +50,7 @@ type EventStatus = "all" | "upcoming" | "live" | "past";
 
 export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<EventStatus>("all");
+  const router = useRouter();
 
   // Get current user from Convex (this gives us the proper Convex user ID)
   const currentUser = useQuery(api.users.currentUser);
@@ -78,10 +81,29 @@ export default function Dashboard() {
   );
 
   // Use allEvents when no filter is applied, otherwise use filteredEvents
-  const eventsToDisplay = statusFilter === "all" ? allEvents : filteredEvents;
+  const eventsToDisplay =
+    statusFilter === "all" ? allEvents || [] : filteredEvents || [];
 
   // Mutations
   const deleteEventMutation = useMutation(api.events.deleteEvent);
+  const updateEventStatusMutation = useMutation(api.events.updateEventStatus);
+
+  // Update event statuses when events are loaded
+  useEffect(() => {
+    if (eventsToDisplay && eventsToDisplay.length > 0 && userId) {
+      // Update all event statuses
+      eventsToDisplay.forEach((event) => {
+        updateEventStatusMutation({ eventId: event._id, userId }).catch(
+          (error) => {
+            console.error(
+              `Failed to update status for event ${event._id}:`,
+              error
+            );
+          }
+        );
+      });
+    }
+  }, [eventsToDisplay, userId, updateEventStatusMutation]);
 
   const handleDeleteEvent = async (eventId: Id<"events">) => {
     if (!userId) return;
@@ -96,7 +118,7 @@ export default function Dashboard() {
   };
 
   const handleViewEvent = (eventId: Id<"events">) => {
-    window.open(`/event/${eventId}`, "_blank");
+    router.push(`/event/${eventId}`);
   };
 
   if (
@@ -139,11 +161,23 @@ export default function Dashboard() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600">
-              Welcome back, {currentUser.first_name || currentUser.email}!
-            </p>
+          <div className="flex items-center gap-4">
+            <Link href="/">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Home
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+              <p className="text-gray-600">
+                Welcome back, {currentUser.first_name || currentUser.email}!
+              </p>
+            </div>
           </div>
           <Link href="/event/create">
             <Button className="flex items-center gap-2">
@@ -284,7 +318,7 @@ export default function Dashboard() {
                               ? "bg-blue-100 text-blue-800"
                               : event.status === "live"
                                 ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
+                                : "bg-red-100 text-red-800"
                           }`}
                         >
                           {event.status.charAt(0).toUpperCase() +
@@ -310,27 +344,33 @@ export default function Dashboard() {
                         View
                       </Button>
 
-                      <Link href={`/event/${event._id}/edit-event`}>
+                      {event.status === "live" || event.status === "past" ? (
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex items-center gap-1"
+                          className="flex items-center gap-1 opacity-50 cursor-not-allowed"
+                          disabled={true}
+                          title={
+                            event.status === "live"
+                              ? "Editing is disabled while event is live"
+                              : "Editing is disabled because event has finished"
+                          }
                         >
                           <Edit className="h-3 w-3" />
                           Edit Event
                         </Button>
-                      </Link>
-
-                      <Link href={`/event/${event._id}/edit-guest`}>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-1"
-                        >
-                          <Users className="h-3 w-3" />
-                          Edit Guests
-                        </Button>
-                      </Link>
+                      ) : (
+                        <Link href={`/event/${event._id}/edit-event`}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-1"
+                          >
+                            <Edit className="h-3 w-3" />
+                            Edit Event
+                          </Button>
+                        </Link>
+                      )}
 
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
