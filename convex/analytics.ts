@@ -1,17 +1,12 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { verifyEventOwnership, validateWithZod } from "./utils";
 
-// Helper function to verify event ownership
-async function verifyEventOwnership(ctx: any, eventId: string, userId: string) {
-  const event = await ctx.db.get(eventId);
-  if (!event) {
-    throw new Error("Event not found");
-  }
-  if (event.userId !== userId) {
-    throw new Error("Unauthorized: You don't own this event");
-  }
-  return event;
-}
+// Import Zod schemas for validation
+import { 
+  GetEventsByUserSchema,
+  GetEventByIdSchema
+} from "../src/lib/validations";
 
 // Get total event count for a specific user (scoped to user)
 export const getAllEventCount = query({
@@ -20,6 +15,12 @@ export const getAllEventCount = query({
     },
     returns: v.number(),
     handler: async (ctx, args) => {
+        // Validate input with Zod
+        const dataToValidate = {
+            userId: args.userId,
+        };
+        validateWithZod(GetEventsByUserSchema, dataToValidate, "getAllEventCount");
+
         const events = await ctx.db
             .query("events")
             .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -35,6 +36,12 @@ export const getAllGuestCountWhole = query({
     },
     returns: v.number(),
     handler: async (ctx, args) => {
+        // Validate input with Zod
+        const dataToValidate = {
+            userId: args.userId,
+        };
+        validateWithZod(GetEventsByUserSchema, dataToValidate, "getAllGuestCountWhole");
+
         // Get all events for this user
         const userEvents = await ctx.db
             .query("events")
@@ -65,6 +72,13 @@ export const getAllGuestCountPerEvent = query({
     },
     returns: v.number(),
     handler: async (ctx, args) => {
+        // Validate input with Zod
+        const dataToValidate = {
+            eventId: args.eventId,
+            userId: args.userId,
+        };
+        validateWithZod(GetEventByIdSchema, dataToValidate, "getAllGuestCountPerEvent");
+
         // Verify ownership before showing analytics
         await verifyEventOwnership(ctx, args.eventId, args.userId);
         
@@ -83,6 +97,12 @@ export const getAllTotalUploadWhole = query({
     },
     returns: v.number(),
     handler: async (ctx, args) => {
+        // Validate input with Zod
+        const dataToValidate = {
+            userId: args.userId,
+        };
+        validateWithZod(GetEventsByUserSchema, dataToValidate, "getAllTotalUploadWhole");
+
         // Get all events for this user
         const userEvents = await ctx.db
             .query("events")
@@ -113,6 +133,13 @@ export const getAllTotalUploadPerEvent = query({
     },
     returns: v.number(),
     handler: async (ctx, args) => {
+        // Validate input with Zod
+        const dataToValidate = {
+            eventId: args.eventId,
+            userId: args.userId,
+        };
+        validateWithZod(GetEventByIdSchema, dataToValidate, "getAllTotalUploadPerEvent");
+
         // Verify ownership before showing analytics
         await verifyEventOwnership(ctx, args.eventId, args.userId);
         

@@ -9,6 +9,13 @@ import {
   import { v } from "convex/values";
   import { Doc, Id } from "./_generated/dataModel";
   import { UserJSON } from "@clerk/backend";
+  import { validateWithZod } from "./utils";
+
+// Import Zod schemas for validation
+import { 
+  CreateUserSchema,
+  type CreateUser
+} from "../src/lib/validations";
 
   interface UserData {
     email: string;
@@ -108,6 +115,14 @@ import {
         last_name: clerkUser.last_name || "",
         clerkUser,
       };
+
+      // Validate user data with Zod before inserting/updating
+      const validatedData = validateWithZod<CreateUser>(CreateUserSchema, {
+        email: userData.email,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        clerkUser: userData.clerkUser,
+      }, "updateOrCreateUser");
   
       if (userRecord === null) {
         await ctx.db.insert("users", userData);
@@ -122,11 +137,26 @@ import {
     args: { id: v.string() },
     returns: v.null(),
     async handler(ctx, { id }) {
+      // Basic validation
+      if (!id || id.trim().length === 0) {
+        throw new Error("User ID is required and cannot be empty");
+      }
+      
       const userRecord = await userQuery(ctx, id);
   
       if (userRecord === null) {
         console.warn("can't delete user, does not exist", id);
       } else {
+        // Check if user has any events before deleting
+        const userEvents = await ctx.db
+          .query("events")
+          .withIndex("by_user", (q) => q.eq("userId", userRecord._id))
+          .collect();
+        
+        if (userEvents.length > 0) {
+          throw new Error("Cannot delete user with existing events. Please delete all events first.");
+        }
+        
         await ctx.db.delete(userRecord._id);
       }
     },

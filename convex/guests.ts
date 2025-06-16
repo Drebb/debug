@@ -1,41 +1,77 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { verifyEventOwnership, verifyGuestOwnership, validateWithZod } from "./utils";
 
-// Helper function to verify event ownership via eventId
-async function verifyEventOwnershipByEventId(ctx: any, eventId: string, userId: string) {
-  const event = await ctx.db.get(eventId);
-  if (!event) {
-    throw new Error("Event not found");
-  }
-  if (event.userId !== userId) {
-    throw new Error("Unauthorized: You don't own this event");
-  }
-  return event;
-}
+// Import Zod schemas for validation
+import { 
+  CreateGuestSchema,
+  UpdateGuestSchema,
+  DeleteGuestSchema,
+  CheckExistingRegistrationSchema,
+  type CreateGuest,
+  type UpdateGuest
+} from "../src/lib/validations";
 
-// Helper function to verify guest ownership via guestId
-async function verifyGuestOwnership(ctx: any, guestId: string, userId: string) {
-  const guest = await ctx.db.get(guestId);
-  if (!guest) {
-    throw new Error("Guest not found");
-  }
-  
-  const event = await ctx.db.get(guest.eventId);
-  if (!event) {
-    throw new Error("Event not found");
-  }
-  
-  if (event.userId !== userId) {
-    throw new Error("Unauthorized: You don't own this guest");
-  }
-  
-  return { guest, event };
-}
+export const checkExistingRegistration = query({
+  args: {
+    eventId: v.id("events"),
+    baseVisitorId: v.string(),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.id("guests"),
+      _creationTime: v.number(),
+      eventId: v.id("events"),
+      nickname: v.string(),
+      email: v.optional(v.string()),
+      socialHandle: v.optional(v.string()),
+      fingerprint: v.object({
+        visitorId: v.string(),
+        userAgent: v.string(),
+      }),
+    })
+  ),
+  handler: async (ctx, args) => {
+    // Validate input data with Zod
+    const dataToValidate = {
+      eventId: args.eventId as string,
+      baseVisitorId: args.baseVisitorId,
+    };
+    validateWithZod(CheckExistingRegistrationSchema, dataToValidate, "checkExistingRegistration");
+    
+    // Check if this device (base visitor ID) is already registered for this event
+    // We need to check all guests for this event and see if any have a visitorId that starts with the base
+    console.log("Checking existing registration for baseVisitorId:", args.baseVisitorId);
+    
+    const allGuestsForEvent = await ctx.db
+      .query("guests")
+      .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+      .collect();
+    
+    console.log("All guests for event:", allGuestsForEvent.map(g => ({ 
+      id: g._id, 
+      nickname: g.nickname, 
+      visitorId: g.fingerprint.visitorId 
+    })));
+    
+    const existingGuest = allGuestsForEvent.find(guest => 
+      guest.fingerprint.visitorId.startsWith(args.baseVisitorId + "_")
+    );
+    
+    console.log("Found existing guest:", existingGuest ? { 
+      id: existingGuest._id, 
+      nickname: existingGuest.nickname, 
+      visitorId: existingGuest.fingerprint.visitorId 
+    } : null);
+    
+    return existingGuest || null;
+  },
+});
 
 export const saveGuestRecord = mutation({
     args: {
       eventId: v.id("events"),
-      userId: v.id("users"),
       nickname: v.string(),
       email: v.optional(v.string()),
       socialHandle: v.optional(v.string()),
@@ -46,15 +82,45 @@ export const saveGuestRecord = mutation({
     },
     returns: v.id("guests"),
     handler: async (ctx, args) => {
-      // Verify ownership before adding guest
-      await verifyEventOwnershipByEventId(ctx, args.eventId, args.userId);
-      
-      const guestId = await ctx.db.insert("guests", {
-        eventId: args.eventId,
+      // Validate input data with Zod
+      const dataToValidate = {
+        eventId: args.eventId as string,
         nickname: args.nickname,
         email: args.email,
         socialHandle: args.socialHandle,
         fingerprint: args.fingerprint,
+      };
+      const validatedData = validateWithZod<CreateGuest>(CreateGuestSchema, dataToValidate, "saveGuestRecord");
+      
+      // Verify event exists (but don't check ownership)
+      const event = await ctx.db.get(args.eventId);
+      if (!event) {
+        throw new Error("Event not found");
+      }
+      
+      // Extract base visitor ID (before the nickname suffix)
+      const baseVisitorId = validatedData.fingerprint.visitorId.split("_")[0];
+      
+      // Check if this device (base visitor ID) is already registered for this event
+      const allGuestsForEvent = await ctx.db
+        .query("guests")
+        .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+        .collect();
+      
+      const existingGuest = allGuestsForEvent.find(guest => 
+        guest.fingerprint.visitorId.startsWith(baseVisitorId + "_")
+      );
+      
+      if (existingGuest) {
+        throw new Error(`This device is already registered for this event with nickname: ${existingGuest.nickname}`);
+      }
+      
+      const guestId = await ctx.db.insert("guests", {
+        eventId: args.eventId,
+        nickname: validatedData.nickname,
+        email: validatedData.email,
+        socialHandle: validatedData.socialHandle,
+        fingerprint: validatedData.fingerprint,
       });
       
       return guestId;
@@ -79,8 +145,13 @@ export const getGuestList = query({
       }),
     })),
     handler: async (ctx, args) => {
-      // Verify ownership before showing guests
-      await verifyEventOwnershipByEventId(ctx, args.eventId, args.userId);
+      // Validate user and event IDs (basic validation since they're already Convex ID types)
+      if (!args.eventId || !args.userId) {
+        throw new Error("Event ID and User ID are required");
+      }
+      
+      // Verify event exists and user owns it
+      await verifyEventOwnership(ctx, args.eventId, args.userId);
       
       return await ctx.db
         .query("guests")
@@ -103,6 +174,17 @@ export const getGuestList = query({
     },
     returns: v.id("guests"),
     handler: async (ctx, args) => {
+      // Validate input data with Zod
+      const dataToValidate = {
+        guestId: args.guestId as string,
+        userId: args.userId as string,
+        nickname: args.nickname,
+        email: args.email,
+        socialHandle: args.socialHandle,
+        fingerprint: args.fingerprint,
+      };
+      const validatedData = validateWithZod<UpdateGuest>(UpdateGuestSchema, dataToValidate, "updateGuestRecord");
+      
       const { guestId, userId, ...updates } = args;
       
       // Verify ownership before updating
@@ -125,6 +207,13 @@ export const deleteGuestRecord = mutation({
     },
     returns: v.object({ success: v.boolean() }),
     handler: async (ctx, args) => {
+      // Validate input data with Zod
+      const dataToValidate = {
+        guestId: args.guestId as string,
+        userId: args.userId as string,
+      };
+      validateWithZod(DeleteGuestSchema, dataToValidate, "deleteGuestRecord");
+      
       // Verify ownership before deleting
       await verifyGuestOwnership(ctx, args.guestId, args.userId);
       
@@ -146,4 +235,41 @@ export const deleteGuestRecord = mutation({
       return { success: true };
     },
   });
+
+// Get guest by fingerprint for authentication (used by guests to identify themselves)
+export const getGuestByFingerprint = query({
+  args: {
+    eventId: v.id("events"),
+    visitorId: v.string(),
+  },
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.id("guests"),
+      _creationTime: v.number(),
+      eventId: v.id("events"),
+      nickname: v.string(),
+      email: v.optional(v.string()),
+      socialHandle: v.optional(v.string()),
+      fingerprint: v.object({
+        visitorId: v.string(),
+        userAgent: v.string(),
+      }),
+    })
+  ),
+  handler: async (ctx, args) => {
+    // Find guest by exact visitor ID match
+    const guest = await ctx.db
+      .query("guests")
+      .withIndex("by_event_and_fingerprint", (q) => 
+        q.eq("eventId", args.eventId).eq("fingerprint.visitorId", args.visitorId)
+      )
+      .first();
+    
+    return guest || null;
+  },
+});
+
+
+
   

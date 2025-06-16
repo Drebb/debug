@@ -1,29 +1,21 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
+import { cronJobs } from "convex/server";
+import { internal } from "./_generated/api";
+import { verifyEventOwnership, validateWithZod } from "./utils";
 
-import {
-  calculateTotalDays,
-  getCaptureTypePrice,
-  getGuestTierPrice,
-  getMaxGuestsFromTier,
-  getPricePerGuestForPlan,
-  type GuestTier,
-  PRICING_CONSTANTS
-} from "./pricing";
+// Import Zod schemas for validation
+import { 
+  CreateEventSchema,
+  UpdateEventSchema,
+  DeleteEventSchema,
+  GetEventsByUserSchema,
+  GetEventByIdSchema,
+  type CreateEvent,
+  type UpdateEvent
+} from "../src/lib/validations";
 
-// Helper function to verify event ownership
-async function verifyEventOwnership(ctx: { db: any }, eventId: string, userId: string) {
-  const event = await ctx.db.get(eventId);
-  if (!event) {
-    throw new Error("Event not found");
-  }
-  if (event.userId !== userId) {
-    throw new Error("Unauthorized: You don't own this event");
-  }
-  return event;
-}
-
-// Create event (Create new event) - Now uses database-based pricing calculation
+// Create event (Create new event) - Simplified version
 export const createEvent = mutation({
     args: {
       userId: v.id("users"),
@@ -58,11 +50,7 @@ export const createEvent = mutation({
         v.literal("live"), 
         v.literal("past")
       ),
-      guestTier: v.union(
-        v.literal("0-100"),
-        v.literal("100-200"),
-        v.literal("200-300")
-      ),
+      guestPackageId: v.id("guestPackageTiers"),
       reviewMode: v.boolean(),
       captureLimitId: v.id("captureLimits"),
       addOns: v.optional(v.object({
@@ -70,57 +58,63 @@ export const createEvent = mutation({
         brandedQR: v.boolean(),
       })),
       terms: v.boolean(),
-      qrHash: v.string(),
-      qrRoute: v.string(),
     },
     returns: v.id("events"),
     handler: async (ctx, args) => {
+      // Validate business logic and data types with Zod
+      const dataToValidate = {
+        userId: args.userId,
+        name: args.name,
+        logo: args.logo,
+        eventType: args.eventType,
+        location: args.location,
+        startDate: args.startDate,
+        endDate: args.endDate,
+        status: args.status,
+        guestPackageId: args.guestPackageId,
+        reviewMode: args.reviewMode,
+        captureLimitId: args.captureLimitId,
+        addOns: args.addOns,
+        terms: args.terms,
+      };
+      
+      // Validate using Zod for business logic (dates, strings, etc.)
+      validateWithZod(CreateEventSchema, dataToValidate, "createEvent");
+
+      // Get the guest package tier
+      const guestPackage = await ctx.db.get(args.guestPackageId) as any;
+      if (!guestPackage) {
+        throw new Error(`Guest package not found: ${args.guestPackageId}`);
+      }
+
       // Get the capture limit to determine pricing
-      const captureLimit = await ctx.db
-        .query("captureLimits")
-        .filter((q) => q.eq(q.field("_id"), args.captureLimitId))
-        .unique();
+      const captureLimit = await ctx.db.get(args.captureLimitId) as any;
       if (!captureLimit) {
         throw new Error(`Capture limit not found: ${args.captureLimitId}`);
       }
 
       // Calculate pricing directly
-      const totalDays = calculateTotalDays(args.startDate, args.endDate);
+      const timeDiff = args.endDate - args.startDate;
+      const totalDays = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
       const basePackage = {
-        dailyRate: PRICING_CONSTANTS.BASE_DAILY_RATE,
+        dailyRate: 20, // Base daily rate
         totalDays,
-        totalBasePrice: PRICING_CONSTANTS.BASE_DAILY_RATE * totalDays,
-      };
-
-      const maxGuests = getMaxGuestsFromTier(args.guestTier as GuestTier);
-      const guestPackage = {
-        tier: args.guestTier,
-        maxGuests,
-        additionalPrice: getGuestTierPrice(args.guestTier as GuestTier),
+        totalBasePrice: 20 * totalDays,
       };
 
       const videoEnabled = captureLimit.planType === "photos-videos" || captureLimit.planType === "videos-only";
       const videoPackage = {
         enabled: videoEnabled,
-        price: getCaptureTypePrice(captureLimit.planType),
+        price: videoEnabled ? 49 : 0,
       };
 
-      const pricePerGuest = getPricePerGuestForPlan(captureLimit.plan);
-      const capturePackage = {
-        planId: args.captureLimitId,
-        plan: captureLimit.plan,
-        planType: captureLimit.planType,
-        photoLimit: captureLimit.photo || 0,
-        videoLimit: captureLimit.video || 0,
-        pricePerGuest,
-        totalCapturePrice: pricePerGuest * maxGuests,
-      };
+      const totalCapturePrice = captureLimit.pricePerGuest * guestPackage.maxGuests;
 
       const totalPrice = 
         basePackage.totalBasePrice + 
-        guestPackage.additionalPrice + 
+        guestPackage.price + 
         videoPackage.price + 
-        capturePackage.totalCapturePrice;
+        totalCapturePrice;
       
       // Create event object with calculated pricing
       const eventData = {
@@ -132,15 +126,13 @@ export const createEvent = mutation({
         endDate: args.endDate,
         status: args.status,
         basePackage,
-        guestPackage,
+        guestPackageId: args.guestPackageId,
         reviewMode: args.reviewMode,
         videoPackage,
         captureLimitId: args.captureLimitId,
         addOns: args.addOns,
         terms: args.terms,
         price: totalPrice,
-        qrHash: args.qrHash,
-        qrRoute: args.qrRoute,
         updatedAt: Date.now(),
         paid: false,
       };
@@ -192,15 +184,7 @@ export const getAllEvents = query({
       totalDays: v.number(),
       totalBasePrice: v.number(),
     }),
-    guestPackage: v.object({
-      tier: v.union(
-        v.literal("0-100"),
-        v.literal("100-200"),
-        v.literal("200-300")
-      ),
-      maxGuests: v.number(),
-      additionalPrice: v.number(),
-    }),
+    guestPackageId: v.id("guestPackageTiers"),
     reviewMode: v.boolean(),
     videoPackage: v.object({
       enabled: v.boolean(),
@@ -213,12 +197,16 @@ export const getAllEvents = query({
     })),
     terms: v.boolean(),
     price: v.number(),
-    qrHash: v.string(),
-    qrRoute: v.string(),
     updatedAt: v.number(),
     paid: v.boolean(),
   })),
   handler: async (ctx, args) => {
+    // Validate input with Zod
+    const dataToValidate = {
+      userId: args.userId,
+    };
+    validateWithZod(GetEventsByUserSchema, dataToValidate, "getAllEvents");
+
     return await ctx.db
       .query("events")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
@@ -271,15 +259,7 @@ export const getEventById = query({
         totalDays: v.number(),
         totalBasePrice: v.number(),
       }),
-      guestPackage: v.object({
-        tier: v.union(
-          v.literal("0-100"),
-          v.literal("100-200"),
-          v.literal("200-300")
-        ),
-        maxGuests: v.number(),
-        additionalPrice: v.number(),
-      }),
+      guestPackageId: v.id("guestPackageTiers"),
       reviewMode: v.boolean(),
       videoPackage: v.object({
         enabled: v.boolean(),
@@ -292,12 +272,17 @@ export const getEventById = query({
       })),
       terms: v.boolean(),
       price: v.number(),
-      qrHash: v.string(),
-      qrRoute: v.string(),
       updatedAt: v.number(),
       paid: v.boolean(),
     }), v.null()),
     handler: async (ctx, args) => {
+      // Validate input with Zod
+      const dataToValidate = {
+        eventId: args.eventId,
+        userId: args.userId,
+      };
+      validateWithZod(GetEventByIdSchema, dataToValidate, "getEventById");
+
       const event = await ctx.db.get(args.eventId);
       if (!event) {
         return null;
@@ -312,7 +297,7 @@ export const getEventById = query({
     },
   });
 
-// Update event (Edit Event) - Now uses database-based pricing calculation
+// Update event (Edit Event) - Simplified version
 export const updateEvent = mutation({
     args: {
       eventId: v.id("events"),
@@ -342,16 +327,7 @@ export const updateEvent = mutation({
       })),
       startDate: v.optional(v.number()),
       endDate: v.optional(v.number()),
-      status: v.optional(v.union(
-        v.literal("upcoming"),
-        v.literal("live"), 
-        v.literal("past")
-      )),
-      guestTier: v.optional(v.union(
-        v.literal("0-100"),
-        v.literal("100-200"),
-        v.literal("200-300")
-      )),
+      guestPackageId: v.optional(v.id("guestPackageTiers")),
       reviewMode: v.optional(v.boolean()),
       captureLimitId: v.optional(v.id("captureLimits")),
       addOns: v.optional(v.object({
@@ -359,79 +335,35 @@ export const updateEvent = mutation({
         brandedQR: v.boolean(),
       })),
       terms: v.optional(v.boolean()),
-      qrHash: v.optional(v.string()),
-      qrRoute: v.optional(v.string()),
     },
     returns: v.id("events"),
     handler: async (ctx, args) => {
+      // Validate input with Zod
+      const dataToValidate = {
+        eventId: args.eventId,
+        userId: args.userId,
+        name: args.name,
+        eventType: args.eventType,
+        location: args.location,
+        startDate: args.startDate,
+        endDate: args.endDate,
+        guestPackageId: args.guestPackageId,
+        reviewMode: args.reviewMode,
+        captureLimitId: args.captureLimitId,
+        addOns: args.addOns,
+        terms: args.terms,
+      };
+      validateWithZod(UpdateEventSchema, dataToValidate, "updateEvent");
+
       const { eventId, userId, ...updates } = args;
       
       // Verify ownership before updating
-      const existingEvent = await verifyEventOwnership(ctx, eventId, userId);
+      await verifyEventOwnership(ctx, eventId, userId);
       
       // Remove undefined values
       const cleanUpdates = Object.fromEntries(
         Object.entries(updates).filter(([_, value]) => value !== undefined)
       );
-      
-      // Check if pricing-related fields have changed
-      const needsPricingRecalculation = 
-        updates.startDate !== undefined || 
-        updates.endDate !== undefined || 
-        updates.guestTier !== undefined || 
-        updates.captureLimitId !== undefined;
-      
-      if (needsPricingRecalculation) {
-        // Get current or updated values for pricing calculation
-        const startDate = updates.startDate !== undefined ? updates.startDate : existingEvent.startDate;
-        const endDate = updates.endDate !== undefined ? updates.endDate : existingEvent.endDate;
-        const guestTier = updates.guestTier !== undefined ? updates.guestTier : existingEvent.guestPackage.tier;
-        const captureLimitId = updates.captureLimitId !== undefined ? updates.captureLimitId : existingEvent.captureLimitId;
-        
-        // Calculate new pricing directly
-        const captureLimit = await ctx.db
-          .query("captureLimits")
-          .filter((q) => q.eq(q.field("_id"), captureLimitId))
-          .unique();
-        if (!captureLimit) {
-          throw new Error(`Capture limit not found: ${captureLimitId}`);
-        }
-
-        const totalDays = calculateTotalDays(startDate, endDate);
-        const basePackage = {
-          dailyRate: PRICING_CONSTANTS.BASE_DAILY_RATE,
-          totalDays,
-          totalBasePrice: PRICING_CONSTANTS.BASE_DAILY_RATE * totalDays,
-        };
-
-        const maxGuests = getMaxGuestsFromTier(guestTier as GuestTier);
-        const guestPackage = {
-          tier: guestTier,
-          maxGuests,
-          additionalPrice: getGuestTierPrice(guestTier as GuestTier),
-        };
-
-        const videoEnabled = captureLimit.planType === "photos-videos" || captureLimit.planType === "videos-only";
-        const videoPackage = {
-          enabled: videoEnabled,
-          price: getCaptureTypePrice(captureLimit.planType),
-        };
-
-        const pricePerGuest = getPricePerGuestForPlan(captureLimit.plan);
-        const totalCapturePrice = pricePerGuest * maxGuests;
-
-        const totalPrice = 
-          basePackage.totalBasePrice + 
-          guestPackage.additionalPrice + 
-          videoPackage.price + 
-          totalCapturePrice;
-        
-        // Update pricing-related fields
-        (cleanUpdates as any).basePackage = basePackage;
-        (cleanUpdates as any).guestPackage = guestPackage;
-        (cleanUpdates as any).videoPackage = videoPackage;
-        (cleanUpdates as any).price = totalPrice;
-      }
       
       // Add updated timestamp
       (cleanUpdates as any).updatedAt = Date.now();
@@ -450,6 +382,13 @@ export const deleteEvent = mutation({
     },
     returns: v.object({ success: v.boolean() }),
     handler: async (ctx, args) => {
+      // Validate input with Zod
+      const dataToValidate = {
+        eventId: args.eventId,
+        userId: args.userId,
+      };
+      validateWithZod(DeleteEventSchema, dataToValidate, "deleteEvent");
+
       // Verify ownership before deleting
       await verifyEventOwnership(ctx, args.eventId, args.userId);
       
@@ -532,15 +471,7 @@ export const filterEventsByStatus = query({
         totalDays: v.number(),
         totalBasePrice: v.number(),
       }),
-      guestPackage: v.object({
-        tier: v.union(
-          v.literal("0-100"),
-          v.literal("100-200"),
-          v.literal("200-300")
-        ),
-        maxGuests: v.number(),
-        additionalPrice: v.number(),
-      }),
+      guestPackageId: v.id("guestPackageTiers"),
       reviewMode: v.boolean(),
       videoPackage: v.object({
         enabled: v.boolean(),
@@ -553,8 +484,6 @@ export const filterEventsByStatus = query({
       })),
       terms: v.boolean(),
       price: v.number(),
-      qrHash: v.string(),
-      qrRoute: v.string(),
       updatedAt: v.number(),
       paid: v.boolean(),
     })),
@@ -603,3 +532,59 @@ export const updateEventStatus = mutation({
       return newStatus;
     },
   });
+
+// Internal function to automatically update all event statuses
+export const updateAllEventStatuses = internalMutation({
+  args: {},
+  returns: v.object({
+    updatedCount: v.number(),
+    totalChecked: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    // Get all events
+    const allEvents = await ctx.db.query("events").collect();
+    
+    const now = Date.now();
+    let updatedCount = 0;
+    
+    for (const event of allEvents) {
+      let newStatus: "upcoming" | "live" | "past";
+      
+      if (now < event.startDate) {
+        newStatus = "upcoming";
+      } else if (now >= event.startDate && now <= event.endDate) {
+        newStatus = "live";
+      } else {
+        newStatus = "past";
+      }
+      
+      // Only update if status has changed
+      if (newStatus !== event.status) {
+        await ctx.db.patch(event._id, {
+          status: newStatus,
+          updatedAt: now,
+        });
+        updatedCount++;
+      }
+    }
+    
+    console.log(`Event status update completed: ${updatedCount} events updated out of ${allEvents.length} total events`);
+    
+    return {
+      updatedCount,
+      totalChecked: allEvents.length,
+    };
+  },
+});
+
+// Set up cron job to automatically update event statuses every hour
+const crons = cronJobs();
+
+crons.interval(
+  "update event statuses",
+  { hours: 1 }, // Run every hour
+  internal.events.updateAllEventStatuses,
+  {}
+);
+
+export default crons;
