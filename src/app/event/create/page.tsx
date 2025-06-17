@@ -50,6 +50,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import Sidebar from "@/components/Sidebar";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 const eventTypes = [
   "Music Festival",
@@ -69,6 +70,9 @@ const eventTypes = [
 
 // Base daily rate
 const BASE_DAILY_RATE = 20;
+
+// Add Google Maps API key (used by AddressAutocomplete)
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
 export default function CreateEventPage() {
   const router = useRouter();
@@ -334,19 +338,7 @@ export default function CreateEventPage() {
                           Location
                         </h3>
 
-                        <FormField
-                          control={form.control}
-                          name="location.address"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Address *</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Street address" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <AddressAutocomplete form={form} apiKey={GOOGLE_MAPS_API_KEY} />
 
                         <div className="grid grid-cols-2 gap-4">
                           <FormField
@@ -356,7 +348,7 @@ export default function CreateEventPage() {
                               <FormItem>
                                 <FormLabel>City *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="City" {...field} />
+                                  <Input placeholder="City" {...field} readOnly />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -369,7 +361,7 @@ export default function CreateEventPage() {
                               <FormItem>
                                 <FormLabel>Region/State *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="State/Province" {...field} />
+                                  <Input placeholder="State/Province" {...field} readOnly />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -385,7 +377,7 @@ export default function CreateEventPage() {
                               <FormItem>
                                 <FormLabel>Postal Code *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Postal code" {...field} />
+                                  <Input placeholder="Postal code" {...field} readOnly />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -398,7 +390,7 @@ export default function CreateEventPage() {
                               <FormItem>
                                 <FormLabel>Country *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Country" {...field} />
+                                  <Input placeholder="Country" {...field} readOnly />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

@@ -1,12 +1,11 @@
 {
   "name": "voding",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "npm-run-all --parallel dev:frontend dev:backend",
     "dev:frontend": "next dev",
     "dev:backend": "convex dev",
-    "predev": "convex dev --until-success && convex dashboard",
     "build": "next build",
     "prebuild": "node scripts/verify-env.js",
     "verify-env": "node scripts/verify-env.js",
