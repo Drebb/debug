@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useClerk, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import SnapClickBangLogo from "./ui/snapclickbang-logo";
 
 
 
@@ -35,50 +36,57 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 text-white flex flex-col h-screen" style={{ backgroundColor: '#36A2DB' }}>
-      {/* Logo/Brand Section */}
-      <div className="p-6 border-b border-blue-300/30">
-        
-      </div>
+    <div className="p-6 h-screen bg-gray-50">
+      <div className="w-64 text-white flex flex-col h-full rounded-xl" style={{ backgroundColor: '#36A2DB' }}>
+        {/* Logo/Brand Section */}
+        <div className="p-2">
+          <SnapClickBangLogo className="w-full h-auto" />
+        </div>
 
-      {/* Navigation Items */}
-      <nav className="flex-1 px-4 py-6">
-        <ul className="space-y-2">
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href || 
-              (item.href !== "/dashboard" && pathname.startsWith(item.href));
-            
-            return (
-              <li key={item.name}>
-                <Link href={item.href}>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start text-left text-white hover:bg-white/20 hover:text-white",
-                      isActive && "bg-white/30 text-white font-semibold"
-                    )}
-                  >
-                    <Icon className="mr-3 h-5 w-5" />
-                    {item.name}
-                  </Button>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+        {/* Navigation Items */}
+        <nav className="flex-1 px-3">
+          <ul className="space-y-1">
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href || 
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+              
+              return (
+                <li key={item.name}>
+                  <Link href={item.href}>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start text-left text-base font-medium hover:bg-white/20 hover:text-white py-3 gap-3 font-inter",
+                        isActive && "bg-white/30 font-semibold"
+                      )}
+                      style={{ color: '#FFFFFF', fontSize: '16px' }}
+                    >
+                      <Icon className="h-6 w-6 flex-shrink-0" />
+                      <span>{item.name}</span>
+                    </Button>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
 
-      {/* User Info & Logout */}
-      <div className="p-4 border-t border-blue-300/30">
-        <Button
-          onClick={handleLogout}
-          variant="ghost"
-          className="w-full justify-start text-left text-white hover:bg-white/20 hover:text-white"
-        >
-          <LogoutIcon className="mr-3 h-5 w-5" />
-          Log out
-        </Button>
+        {/* Divider */}
+        <div className=" border-t border-white/20"></div>
+
+        {/* User Info & Logout */}
+        <div className="p-3">
+          <Button
+            onClick={handleLogout}
+            variant="ghost"
+            className="w-full justify-start text-left text-base font-medium hover:bg-white/20 hover:text-white py-3 gap-3 font-inter"
+            style={{ color: '#FFFFFF', fontSize: '16px' }}
+          >
+            <LogoutIcon className="h-6 w-6 flex-shrink-0" />
+            <span>Log out</span>
+          </Button>
+        </div>
       </div>
     </div>
   );
