@@ -1,7 +1,7 @@
 "use client";
 
-import { Authenticated, Unauthenticated } from "convex/react";
 import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
+import { Authenticated, Unauthenticated } from "convex/react";
 import Link from "next/link";
 
 export default function Home() {
