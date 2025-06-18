@@ -53,13 +53,13 @@ export default defineSchema({
           v.literal("Private Event"),
           v.literal("Concert")
         ),
-      location: v.object({
-        address: v.string(),
-        city: v.string(),
-        region: v.string(),
-        postal: v.string(),
-        country: v.string(),
-      }),
+        location: v.object({
+    address: v.string(),
+    city: v.string(),
+    region: v.string(),
+    postal: v.string(),
+    country: v.string(),
+  }),
       startDate: v.number(),
       endDate: v.number(),
       status: v.union(

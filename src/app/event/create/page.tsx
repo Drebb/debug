@@ -103,10 +103,10 @@ export default function CreateEventPage() {
       endDate: undefined,
       startTime: "09:00",
       endTime: "17:00",
-      guestPackageId: undefined,
+      guestPackageId: "",
       reviewMode: false,
       videoPackage: false,
-      captureLimitId: undefined,
+      captureLimitId: "",
       addOns: {
         filter: false,
         brandedQR: false,
@@ -211,6 +211,10 @@ export default function CreateEventPage() {
   const pricing = calculatePricing();
 
   const onSubmit = async (data: EventForm) => {
+    console.log("Form submission started");
+    console.log("Form data:", data);
+    console.log("Form errors:", form.formState.errors);
+    
     if (!convexUser?._id) {
       toast.error("You must be logged in to create an event");
       return;
@@ -222,6 +226,21 @@ export default function CreateEventPage() {
       // Combine date and time for accurate timestamps
       const startDateTime = combineDateTime(data.startDate, data.startTime);
       const endDateTime = combineDateTime(data.endDate, data.endTime);
+
+      console.log("Creating event with data:", {
+        userId: convexUser._id,
+        name: data.name,
+        eventType: data.eventType,
+        location: data.location,
+        startDate: startDateTime.getTime(),
+        endDate: endDateTime.getTime(),
+        status: "upcoming",
+        guestPackageId: data.guestPackageId,
+        reviewMode: data.reviewMode,
+        captureLimitId: data.captureLimitId,
+        addOns: data.addOns,
+        terms: data.terms,
+      });
 
       const eventId = await createEvent({
         userId: convexUser._id,
@@ -238,6 +257,7 @@ export default function CreateEventPage() {
         terms: data.terms,
       });
 
+      console.log("Event created successfully with ID:", eventId);
       toast.success("Event created successfully!");
       router.push(`/dashboard`);
     } catch (error) {
@@ -255,7 +275,10 @@ export default function CreateEventPage() {
         <div className="p-6">
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={form.handleSubmit(onSubmit, (errors) => {
+                console.log("Form validation errors:", errors);
+                toast.error("Please fix the form errors before submitting");
+              })}
               className="space-y-8"
             >
               <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -281,6 +304,18 @@ export default function CreateEventPage() {
                       <CardDescription>
                         Fill out the details below to create your event
                       </CardDescription>
+                      {Object.keys(form.formState.errors).length > 0 && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+                          <h4 className="text-red-800 font-medium mb-2">Please fix the following errors:</h4>
+                          <ul className="text-red-700 text-sm space-y-1">
+                            {Object.entries(form.formState.errors).map(([field, error]) => (
+                              <li key={field}>
+                                • {field}: {error?.message || "This field is required"}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </CardHeader>
                     <CardContent>
                       {/* Basic Information */}
@@ -340,6 +375,10 @@ export default function CreateEventPage() {
 
                         <AddressAutocomplete form={form} apiKey={GOOGLE_MAPS_API_KEY} />
 
+                        <div className="text-sm text-gray-600 mb-3">
+                          💡 The fields below will be auto-filled when you select a location on the map. You can also edit them manually if needed.
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
@@ -348,7 +387,7 @@ export default function CreateEventPage() {
                               <FormItem>
                                 <FormLabel>City *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="City" {...field} readOnly />
+                                  <Input placeholder="Enter city name" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -361,7 +400,7 @@ export default function CreateEventPage() {
                               <FormItem>
                                 <FormLabel>Region/State *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="State/Province" {...field} readOnly />
+                                  <Input placeholder="Enter state/province" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -377,7 +416,7 @@ export default function CreateEventPage() {
                               <FormItem>
                                 <FormLabel>Postal Code *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Postal code" {...field} readOnly />
+                                  <Input placeholder="Enter postal code" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -390,7 +429,7 @@ export default function CreateEventPage() {
                               <FormItem>
                                 <FormLabel>Country *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Country" {...field} readOnly />
+                                  <Input placeholder="Enter country" {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -1019,7 +1058,6 @@ export default function CreateEventPage() {
                         type="submit"
                         className="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white text-base font-semibold rounded-lg py-2"
                         disabled={isSubmitting || !form.watch("terms")}
-                        onClick={form.handleSubmit(onSubmit)}
                       >
                         {isSubmitting ? "Creating Event..." : "Create Event"}
                       </Button>

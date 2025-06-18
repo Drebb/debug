@@ -52,8 +52,8 @@ export const FingerprintSchema = z.object({
 // User Schemas
 export const CreateUserSchema = z.object({
   email: z.string().email("Invalid email format"),
-  first_name: z.string().min(1, "First name is required").max(50, "First name too long").optional(),
-  last_name: z.string().min(1, "Last name is required").max(50, "Last name too long").optional(),
+  first_name: z.string().max(50, "First name too long").optional(),
+  last_name: z.string().max(50, "Last name too long").optional(),
   clerkUser: z.any(),
 });
 
@@ -131,11 +131,11 @@ export const CreateEventSchema = z.object({
   name: z.string()
     .min(1, "Event name is required")
     .max(100, "Event name too long")
-    .regex(/^[a-zA-Z0-9\s\-_.(),&!]+$/, "Event name contains invalid characters"),
+    .regex(/^[a-zA-Z0-9\s\-_.(),&!'":@#$%+*\/\\=?~]+$/, "Event name contains invalid characters"),
   logo: z.string().optional(),
   eventType: EventTypeSchema,
   location: LocationSchema,
-  startDate: z.number().min(Date.now() - 86400000, "Start date cannot be more than 1 day in the past"), // Allow 1 day buffer for timezone issues
+  startDate: z.number().min(Date.now() - (7 * 24 * 60 * 60 * 1000), "Start date cannot be more than 7 days in the past"), // Allow 7 day buffer for testing
   endDate: z.number(),
   status: EventStatusSchema,
   guestPackageId: z.string().min(1, "Guest package ID is required"),
@@ -154,7 +154,7 @@ export const UpdateEventSchema = z.object({
   name: z.string()
     .min(1, "Event name is required")
     .max(100, "Event name too long")
-    .regex(/^[a-zA-Z0-9\s\-_.(),&!]+$/, "Event name contains invalid characters")
+    .regex(/^[a-zA-Z0-9\s\-_.(),&!'":@#$%+*\/\\=?~]+$/, "Event name contains invalid characters")
     .optional(),
   logo: z.string().optional(),
   eventType: EventTypeSchema.optional(),
@@ -223,7 +223,8 @@ export const GetGalleryByEventSchema = z.object({
 export const EventFormSchema = z.object({
   name: z.string()
     .min(1, "Event name is required")
-    .max(100, "Event name too long"),
+    .max(100, "Event name too long")
+    .regex(/^[a-zA-Z0-9\s\-_.(),&!'":@#$%+*\/\\=?~]+$/, "Event name contains invalid characters"),
   eventType: EventTypeSchema,
   location: LocationSchema,
   startDate: z.date({

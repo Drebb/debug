@@ -77,7 +77,7 @@ export default function Dashboard() {
   const uploadCount = useQuery(
     api.analytics.getAllTotalUploadWhole,
     userId ? { userId } : "skip"
-  );
+      );
 
   // Events queries - always call hooks
   const allEvents = useQuery(
@@ -87,7 +87,7 @@ export default function Dashboard() {
   const filteredEvents = useQuery(
     api.events.filterEventsByStatus,
     statusFilter !== "all" && userId ? { userId, status: statusFilter } : "skip"
-  );
+      );
 
   // Use allEvents when no filter is applied, otherwise use filteredEvents
   const eventsToDisplay =
