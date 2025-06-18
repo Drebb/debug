@@ -417,7 +417,7 @@ function EventCard({
     <>
       <div className="bg-white border rounded-xl shadow-sm hover:shadow-lg hover:border-[#F04A35] transition-all duration-300 overflow-hidden">
       {/* Event Image */}
-      <div className="relative h-40 bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center group">
+      <div className="relative aspect-video bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center group">
         {coverImageUrl ? (
           <>
             <Image
@@ -504,7 +504,7 @@ function EventCard({
         </h3>
 
         {/* Location */}
-        <p className="text-gray-600 text-sm mb-3 flex flex-row items-center gap-1">
+        <p className="text-gray-600 font-medium text-sm mb-3 flex flex-row items-center gap-1">
           <LocationIcon />
           {event.location.city}, {event.location.region}
         </p>
