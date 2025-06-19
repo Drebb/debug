@@ -1,4 +1,6 @@
-const SnapClickBangLogo = ({...props}) => (
+import * as React from "react";
+
+const SnapClickBangLogo = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     width="242"
     height="24"
@@ -72,4 +74,5 @@ const SnapClickBangLogo = ({...props}) => (
     </defs>
   </svg>
 );
+
 export default SnapClickBangLogo;
