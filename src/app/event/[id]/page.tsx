@@ -4,39 +4,37 @@ import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle
 } from "@/components/ui/dialog";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Download,
-  Eye,
-  Image as ImageIcon,
-  Maximize,
-  Minimize,
-  Trash2,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
 import JSZip from "jszip";
+import {
+    ArrowLeft,
+    ArrowRight,
+    Download,
+    Image as ImageIcon,
+    Maximize,
+    Minimize,
+    Trash2,
+    ZoomIn,
+    ZoomOut
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 

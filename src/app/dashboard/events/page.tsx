@@ -1,9 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,10 +11,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CircleAndCrossSVG, HandCameraSVG } from "@/components/ui/decorative-svg";
+import { Button } from "@/components/ui/button";
+import CameraIcon from "@/components/ui/camera-icon";
+import { EllipseSVG } from "@/components/ui/decorative-svg";
+import { Group1Icon } from "@/components/ui/group-1-icon";
+import { Group346Icon } from "@/components/ui/group-346-icon";
+import GuestIcon from "@/components/ui/guest-icon";
+import ImageCropper from "@/components/ui/image-cropper";
+import LocationIcon from "@/components/ui/location-icon";
 import { useMutation, useQuery } from "convex/react";
+import {
+  Calendar,
+  ImageIcon,
+  Plus,
+  Trash2,
+  Upload,
+  X
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
@@ -78,7 +91,7 @@ export default function EventsPage() {
           (error) => {
             console.error(
               `Failed to update status for event ${event._id}:`,
-              error
+              error 
             );
           }
         );
@@ -104,12 +117,11 @@ export default function EventsPage() {
 
   if (
     currentUser === undefined ||
-    allEvents === undefined ||
     eventsToDisplay === undefined
   ) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-lg">Loading events...</div>
           </div>
@@ -120,8 +132,8 @@ export default function EventsPage() {
 
   if (currentUser === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-4">Please log in</h2>
@@ -141,22 +153,17 @@ export default function EventsPage() {
         {/* Events Section */}
         <div className="mb-8">
           {!allEvents || allEvents.length === 0 ? (
-            // Show hero banner ONLY when no events exist at all (onboarding)
-            <>
-              <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">Events</h2>
-              <p className="text-gray-600 text-base lg:text-lg mb-6">Manage all your events in one place</p>
-
-              {/* Events Hero Banner */}
-              <div className="relative bg-gradient-to-r from-[#36A2DB] to-[#5E74FF] rounded-2xl p-6 lg:p-8 mb-8 overflow-hidden">
-                {/* Decorative elements */}
-                <div className="absolute top-6 right-48 opacity-70">
-                  <CircleAndCrossSVG className="w-10 h-10 lg:w-12 lg:h-12" />
-                </div>
-
+            // Show onboarding hero banner when no events exist
+            <div className="relative mb-8 mt-[120px]">
+              {/* Position the Ellipse behind the mascot */}
+              <EllipseSVG className="hidden lg:block absolute top-[1px] right-0 w-full max-w-[700px] md:w-[400px] lg:w-[700px] h-auto z-5 pointer-events-none opacity-100" />
+              <Group346Icon className="hidden lg:block absolute right-[25%] top-1/2 -translate-y-1/2 w-20 h-20 opacity-100 z-10" />
+              {/* Hero Banner for onboarding or events */}
+              <div className="bg-gradient-to-r from-[#36A2DB] to-[#5E74FF] rounded-2xl p-6 lg:p-8 mb-8 overflow-hidden relative z-0">
                 {/* Main content container */}
-                <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div className="relative flex flex-row items-center justify-between gap-6">
                   <div className="flex-1 z-10 max-w-md">
-                    <p className="text-white/90 text-sm lg:text-base mb-4 lg:mb-6 font-medium">
+                    <p className="text-white/90 text-sm lg:text-base mb-4 lg:mb-6 font-medium opacity-50">
                       Set the Scene. Share the Clicks. Make an Event!
                     </p>
                     <Link href="/event/create">
@@ -165,67 +172,86 @@ export default function EventsPage() {
                       </Button>
                     </Link>
                   </div>
-
-                  {/* Hand camera illustration - positioned on the right */}
-                  <div className="absolute right-[-20px] top-1/2 transform -translate-y-1/2 lg:right-[-10px] xl:right-0">
-                    <HandCameraSVG className="w-32 h-32 lg:w-40 lg:h-40 xl:w-48 xl:h-48 opacity-95" />
-                  </div>
                 </div>
               </div>
-            </>
+              <Group1Icon className="hidden lg:block absolute top-0 right-[5%] w-[260px] h-[260px] -translate-y-1/4 z-20 pointer-events-none" />
+            </div>
           ) : (
             // Show events management interface when events exist (even if current filter shows none)
             <div className="bg-white rounded-lg border">
               {/* Header with title, filter tabs, and create button */}
               <div className="p-6 border-b">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+                <div className="flex flex-row items-center justify-between gap-4">
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">Events</h2>
                     <p className="text-gray-600 text-sm">Manage all your events in one place</p>
                   </div>
-                  <Link href="/event/create">
-                    <Button className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white">
-                      <Plus className="h-4 w-4" />
-                      Create Event
-                    </Button>
-                  </Link>
-                </div>
-
-                {/* Filter tabs row */}
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant={statusFilter === "all" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => setStatusFilter("all")}
-                      className="text-sm"
-                    >
-                      All Events
-                    </Button>
-                    <Button
-                      variant={statusFilter === "live" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => setStatusFilter("live")}
-                      className="text-sm"
-                    >
-                      Active
-                    </Button>
-                    <Button
-                      variant={statusFilter === "upcoming" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => setStatusFilter("upcoming")}
-                      className="text-sm"
-                    >
-                      Upcoming
-                    </Button>
-                    <Button
-                      variant={statusFilter === "past" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => setStatusFilter("past")}
-                      className="text-sm"
-                    >
-                      Past
-                    </Button>
+                  
+                  <div className="flex flex-row items-center gap-4">
+                    {/* Filter slider */}
+                    <div className="relative bg-gray-100 rounded-lg p-1 flex h-10 w-80">
+                      {/* Sliding background */}
+                      <div 
+                        className="absolute top-1 bottom-1 bg-white rounded-md shadow-sm transition-all duration-200 ease-in-out"
+                        style={{
+                          width: `${100 / 4}%`,
+                          left: `${
+                            statusFilter === "all" ? 0 :
+                            statusFilter === "live" ? 25 :
+                            statusFilter === "upcoming" ? 50 : 75
+                          }%`,
+                        }}
+                      />
+                      
+                      {/* Filter buttons */}
+                      <button
+                        onClick={() => setStatusFilter("all")}
+                        className={`relative z-10 px-1 py-1 text-sm font-medium rounded-md transition-colors duration-200 flex-1 text-center overflow-hidden ${
+                          statusFilter === "all"
+                            ? "text-[#414651]"
+                            : "text-[#717680] hover:text-[#414651]"
+                        }`}
+                      >
+                        All Events
+                      </button>
+                      <button
+                        onClick={() => setStatusFilter("live")}
+                        className={`relative z-10 px-1 py-1 text-sm font-medium rounded-md transition-colors duration-200 flex-1 text-center overflow-hidden ${
+                          statusFilter === "live"
+                            ? "text-[#414651]"
+                            : "text-[#717680] hover:text-[#414651]"
+                        }`}
+                      >
+                        Active
+                      </button>
+                      <button
+                        onClick={() => setStatusFilter("upcoming")}
+                        className={`relative z-10 px-1 py-1 text-sm font-medium rounded-md transition-colors duration-200 flex-1 text-center overflow-hidden ${
+                          statusFilter === "upcoming"
+                            ? "text-[#414651]"
+                            : "text-[#717680] hover:text-[#414651]"
+                        }`}
+                      >
+                        Upcoming
+                      </button>
+                      <button
+                        onClick={() => setStatusFilter("past")}
+                        className={`relative z-10 px-1 py-1 text-sm font-medium rounded-md transition-colors duration-200 flex-1 text-center overflow-hidden ${
+                          statusFilter === "past"
+                            ? "text-[#414651]"
+                            : "text-[#717680] hover:text-[#414651]"
+                        }`}
+                      >
+                        Past
+                      </button>
+                    </div>
+                    
+                    <Link href="/event/create">
+                      <Button className="flex items-center gap-2 bg-gradient-to-r from-[#F04A35] to-[#F07935] hover:from-[#E03E2A] hover:to-[#E06A30] text-white">
+                        <Plus className="h-4 w-4" />
+                        Create Event
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -270,30 +296,195 @@ export default function EventsPage() {
 }
 
 // Separate EventCard component to handle individual event analytics
-function EventCard({
-  event,
-  userId,
-  onDelete,
-  onView
-}: {
+function EventCard({ 
+  event, 
+  userId, 
+  onDelete, 
+  onView 
+}: { 
   event: any;
   userId: Id<"users"> | undefined;
   onDelete: (eventId: Id<"events">) => void;
   onView: (eventId: Id<"events">) => void;
 }) {
   const { guestCount, uploadCount, isLoading } = useEventAnalytics(event._id, userId);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [showCropper, setShowCropper] = useState(false);
+
+  // Mutations for cover image
+  const generateUploadUrl = useMutation(api.gallery.generateUploadURL);
+  const updateEventCoverImage = useMutation(api.events.updateEventCoverImage);
+  const removeEventCoverImage = useMutation(api.events.removeEventCoverImage);
+  
+  // Query for cover image URL
+  const coverImageUrl = useQuery(
+    api.events.getEventCoverImageUrl,
+    userId ? { eventId: event._id, userId } : "skip"
+  );
+
+  const handleImageUpload = async (file: File) => {
+    if (!userId) return;
+    
+    setIsUploading(true);
+    try {
+      // Generate upload URL
+      const uploadUrl = await generateUploadUrl();
+      
+      // Upload the file
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      
+      if (!result.ok) {
+        throw new Error("Upload failed");
+      }
+      
+      const { storageId } = await result.json();
+      
+      // Update the event with the new cover image
+      await updateEventCoverImage({
+        eventId: event._id,
+        userId,
+        coverImageId: storageId,
+      });
+      
+      toast.success("Cover image uploaded successfully!");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload cover image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select an image file");
+      return;
+    }
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+    
+    // Set the selected file and show the cropper
+    setSelectedImageFile(file);
+    setShowCropper(true);
+    
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    if (!userId) return;
+    
+    try {
+      await removeEventCoverImage({
+        eventId: event._id,
+        userId,
+      });
+      toast.success("Cover image removed successfully!");
+    } catch (error) {
+      console.error("Remove error:", error);
+      toast.error("Failed to remove cover image");
+    }
+  };
+
+  const handleCropComplete = async (croppedFile: File) => {
+    setShowCropper(false);
+    setSelectedImageFile(null);
+    await handleImageUpload(croppedFile);
+  };
+
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setSelectedImageFile(null);
+  };
 
   return (
-    <div className="bg-white border rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-      {/* Event Image Placeholder */}
-      <div className="h-40 bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center">
-        <Calendar className="h-12 w-12 text-blue-400" />
+    <>
+      <div className="bg-white border rounded-xl shadow-sm hover:shadow-lg hover:border-[#F04A35] transition-all duration-300 overflow-hidden">
+      {/* Event Image */}
+      <div className="relative aspect-video bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center group">
+        {coverImageUrl ? (
+          <>
+            <Image
+              src={coverImageUrl}
+              alt={event.name}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+            {/* Remove image button */}
+            <button
+              onClick={handleRemoveImage}
+              className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Remove cover image"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </>
+        ) : (
+          <>
+            {/* Upload placeholder */}
+            <div className="flex flex-col items-center justify-center text-blue-400">
+              <ImageIcon className="h-8 w-8 mb-2" />
+              <span className="text-sm font-medium">Add Cover Photo</span>
+            </div>
+            
+            {/* Upload button overlay */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 hover:opacity-100"
+            >
+              <div className="bg-white/90 rounded-lg px-3 py-2 flex items-center gap-2 shadow-md">
+                <Upload className="h-4 w-4" />
+                <span className="text-sm font-medium">
+                  {isUploading ? "Uploading..." : "Upload Photo"}
+                </span>
+              </div>
+            </button>
+          </>
+        )}
+        
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
       </div>
 
       {/* Event Content */}
       <div className="p-4">
-        {/* Status and Date */}
-        <div className="flex items-center justify-between mb-3">
+        {/* Date and Status */}
+        <div className="flex flex-row items-center justify-between mb-3">
+          <span className="text-sm" style={{ color: "#3696D2", fontWeight: "500" }}>
+            {new Date(event.startDate).toLocaleDateString('en-US', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long'
+            })} - {new Date(event.startDate).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            })}
+          </span>
           <span
             className={`px-2 py-1 rounded-full text-xs font-medium ${
               event.status === "upcoming"
@@ -305,9 +496,6 @@ function EventCard({
           >
             {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
           </span>
-          <span className="text-sm text-gray-500">
-            {new Date(event.startDate).toLocaleDateString()}
-          </span>
         </div>
 
         {/* Event Title */}
@@ -316,25 +504,29 @@ function EventCard({
         </h3>
 
         {/* Location */}
-        <p className="text-gray-600 text-sm mb-3 flex items-center gap-1">
-          <span>📍</span>
+        <p className="text-gray-600 font-medium text-sm mb-3 flex flex-row items-center gap-1">
+          <LocationIcon />
           {event.location.city}, {event.location.region}
         </p>
 
         {/* Event Stats */}
-        <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-          <span className="flex items-center gap-1">
-            <span>👥</span>
-            {isLoading ? "..." : guestCount.toLocaleString()}
-          </span>
-          <span className="flex items-center gap-1">
-            <span>📸</span>
-            {isLoading ? "..." : uploadCount.toLocaleString()}
-          </span>
+        <div className="flex flex-row items-center gap-3 mb-4">
+          <div className="flex flex-row items-center gap-2 px-3 py-2 bg-white border rounded-lg" style={{ borderColor: '#766E6E' }}>
+            <GuestIcon />
+            <span className="text-sm font-medium text-gray-700">
+              {isLoading ? "..." : guestCount.toLocaleString()}
+            </span>
+          </div>
+          <div className="flex flex-row items-center gap-2 px-3 py-2 bg-white border rounded-lg" style={{ borderColor: '#766E6E' }}>
+            <CameraIcon />
+            <span className="text-sm font-medium text-gray-700">
+              {isLoading ? "..." : uploadCount.toLocaleString()}
+            </span>
+          </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2">
+        <div className="flex flex-row gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -343,7 +535,7 @@ function EventCard({
           >
             Manage Add-Ons
           </Button>
-
+          
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -380,5 +572,15 @@ function EventCard({
         </div>
       </div>
     </div>
+
+    {/* Image Cropper Modal */}
+    <ImageCropper
+      isOpen={showCropper}
+      onClose={handleCropCancel}
+      onCrop={handleCropComplete}
+      imageFile={selectedImageFile}
+      isLoading={isUploading}
+    />
+  </>
   );
 } 

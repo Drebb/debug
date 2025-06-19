@@ -1,18 +1,16 @@
-import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
 import { cronJobs } from "convex/server";
+import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { verifyEventOwnership, validateWithZod } from "./utils";
+import { internalMutation, mutation, query } from "./_generated/server";
+import { validateWithZod, verifyEventOwnership } from "./utils";
 
 // Import Zod schemas for validation
-import { 
-  CreateEventSchema,
-  UpdateEventSchema,
-  DeleteEventSchema,
-  GetEventsByUserSchema,
-  GetEventByIdSchema,
-  type CreateEvent,
-  type UpdateEvent
+import {
+    CreateEventSchema,
+    DeleteEventSchema,
+    GetEventByIdSchema,
+    GetEventsByUserSchema,
+    UpdateEventSchema
 } from "../src/lib/validations";
 
 // Create event (Create new event) - Simplified version
@@ -150,6 +148,8 @@ export const getAllEvents = query({
     _creationTime: v.number(),
     userId: v.id("users"),
     name: v.string(),
+    logo: v.optional(v.id("_storage")),
+    coverImage: v.optional(v.id("_storage")),
     eventType: v.union(
       v.literal("Music Festival"),
       v.literal("Automotive Event"),
@@ -225,6 +225,8 @@ export const getEventById = query({
       _creationTime: v.number(),
       userId: v.id("users"),
       name: v.string(),
+      logo: v.optional(v.id("_storage")),
+      coverImage: v.optional(v.id("_storage")),
       eventType: v.union(
         v.literal("Music Festival"),
         v.literal("Automotive Event"),
@@ -435,6 +437,8 @@ export const filterEventsByStatus = query({
       _creationTime: v.number(),
       userId: v.id("users"),
       name: v.string(),
+      logo: v.optional(v.id("_storage")),
+      coverImage: v.optional(v.id("_storage")),
       eventType: v.union(
         v.literal("Music Festival"),
         v.literal("Automotive Event"),
@@ -572,6 +576,73 @@ export const updateAllEventStatuses = internalMutation({
       updatedCount,
       totalChecked: allEvents.length,
     };
+  },
+});
+
+// Update event cover image
+export const updateEventCoverImage = mutation({
+  args: {
+    eventId: v.id("events"),
+    userId: v.id("users"),
+    coverImageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Verify ownership before updating
+    await verifyEventOwnership(ctx, args.eventId, args.userId);
+    
+    // Update the event with the new cover image
+    await ctx.db.patch(args.eventId, {
+      coverImage: args.coverImageId,
+      updatedAt: Date.now(),
+    });
+    
+    return null;
+  },
+});
+
+// Remove event cover image
+export const removeEventCoverImage = mutation({
+  args: {
+    eventId: v.id("events"),
+    userId: v.id("users"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Verify ownership before updating
+    const event = await verifyEventOwnership(ctx, args.eventId, args.userId);
+    
+    // Delete the old cover image from storage if it exists
+    if (event.coverImage) {
+      await ctx.storage.delete(event.coverImage);
+    }
+    
+    // Remove the cover image reference from the event
+    await ctx.db.patch(args.eventId, {
+      coverImage: undefined,
+      updatedAt: Date.now(),
+    });
+    
+    return null;
+  },
+});
+
+// Get event cover image URL
+export const getEventCoverImageUrl = query({
+  args: {
+    eventId: v.id("events"),
+    userId: v.id("users"),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    // Verify ownership before providing URL
+    const event = await verifyEventOwnership(ctx, args.eventId, args.userId);
+    
+    if (!event.coverImage) {
+      return null;
+    }
+    
+    return await ctx.storage.getUrl(event.coverImage);
   },
 });
 

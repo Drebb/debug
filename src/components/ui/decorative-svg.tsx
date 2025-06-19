@@ -24,6 +24,35 @@ export const OrangeCircleCrossSVG = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+export const EllipseSVG = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg 
+    width="682" 
+    height="147" 
+    viewBox="0 0 682 147" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    <g filter="url(#filter0_g_229_5880)">
+      <circle cx="456.5" cy="451.5" r="400.5" fill="url(#paint0_linear_229_5880)"/>
+    </g>
+    <defs>
+      <filter id="filter0_g_229_5880" x="0.599998" y="-4.4" width="911.8" height="911.8" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+        <feFlood floodOpacity="0" result="BackgroundImageFix"/>
+        <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+        <feTurbulence type="fractalNoise" baseFrequency="2 2" numOctaves="3" seed="3339" />
+        <feDisplacementMap in="shape" scale="110.80000305175781" xChannelSelector="R" yChannelSelector="G" result="displacedImage" width="100%" height="100%" />
+        <feMerge result="effect1_texture_229_5880">
+          <feMergeNode in="displacedImage"/>
+        </feMerge>
+      </filter>
+      <linearGradient id="paint0_linear_229_5880" x1="456.5" y1="51" x2="456.5" y2="142" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#8BD7FF"/>
+      </linearGradient>
+    </defs>
+  </svg>
+);
+
 export const HandCameraSVG = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     width={264}

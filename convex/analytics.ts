@@ -1,11 +1,11 @@
-import { query } from "./_generated/server";
 import { v } from "convex/values";
-import { verifyEventOwnership, validateWithZod } from "./utils";
+import { query } from "./_generated/server";
+import { validateWithZod, verifyEventOwnership } from "./utils";
 
 // Import Zod schemas for validation
-import { 
-  GetEventsByUserSchema,
-  GetEventByIdSchema
+import {
+    GetEventByIdSchema,
+    GetEventsByUserSchema
 } from "../src/lib/validations";
 
 // Get total event count for a specific user (scoped to user)
