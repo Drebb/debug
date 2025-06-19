@@ -3,7 +3,7 @@ import * as React from "react";
 export const DashboardIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     width={24}
-    height={25}
+    height={24}
     viewBox="0 0 24 25"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -29,7 +29,7 @@ export const DashboardIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export const EventsIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     width={24}
-    height={25}
+    height={24}
     viewBox="0 0 24 25"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
@@ -48,7 +48,7 @@ export const EventsIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export const ProfileIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     width={24}
-    height={25}
+    height={24}
     viewBox="0 0 24 25"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"

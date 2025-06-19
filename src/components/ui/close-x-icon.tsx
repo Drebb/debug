@@ -1,0 +1,25 @@
+
+interface CloseXIconProps {
+  size?: number;
+  className?: string;
+}
+
+export function CloseXIcon({ size = 72, className = "" }: CloseXIconProps) {
+  return (
+    <svg 
+      width={size} 
+      height={size * (60/72)} // Maintain aspect ratio
+      viewBox="0 0 72 60" 
+      fill="none" 
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <path 
+        fillRule="evenodd" 
+        clipRule="evenodd" 
+        d="M24.639 18.639C25.4911 17.787 26.8725 17.787 27.7246 18.639L36 26.9145L44.2754 18.639C45.1275 17.787 46.509 17.787 47.3611 18.639C48.213 19.4911 48.213 20.8725 47.3611 21.7246L39.0856 30L47.3611 38.2754C48.213 39.1275 48.213 40.509 47.3611 41.3611C46.509 42.213 45.1275 42.213 44.2754 41.3611L36 33.0856L27.7246 41.3611C26.8725 42.213 25.4911 42.213 24.639 41.3611C23.787 40.509 23.787 39.1275 24.639 38.2754L32.9145 30L24.639 21.7246C23.787 20.8725 23.787 19.4911 24.639 18.639Z" 
+        fill="white"
+      />
+    </svg>
+  );
+} 
