@@ -244,9 +244,7 @@ export const getEventById = query({
       ),
       location: v.object({
         address: v.string(),
-        city: v.string(),
         region: v.string(),
-        postal: v.string(),
         country: v.string(),
       }),
       startDate: v.number(),

@@ -34,7 +34,7 @@ export function QRCodeDisplay({
         />
       </div>
       <div className="text-center">
-        <p className="text-sm font-medium text-gray-900">{eventName}</p>
+        <p className="text-sm font-mnedium text-gray-900">{eventName}</p>
         <p className="text-xs text-gray-500 break-all">{fullUrl}</p>
       </div>
     </div>

@@ -37,7 +37,7 @@ export default function Dashboard() {
   const uploadCount = useQuery(
     api.analytics.getAllTotalUploadWhole,
     userId ? { userId } : "skip"
-  );
+      );
 
   // Events queries for live events count
   const allEvents = useQuery(
