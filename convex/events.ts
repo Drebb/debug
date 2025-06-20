@@ -145,7 +145,7 @@ export const getAllEvents = query({
   },
   returns: v.array(v.object({
     _id: v.id("events"),
-    _creationTime: v.number(),
+    _creationTime: v.float64(),
     userId: v.id("users"),
     name: v.string(),
     logo: v.optional(v.id("_storage")),
@@ -172,23 +172,23 @@ export const getAllEvents = query({
       postal: v.string(),
       country: v.string(),
     }),
-    startDate: v.number(),
-    endDate: v.number(),
+    startDate: v.float64(),
+    endDate: v.float64(),
     status: v.union(
       v.literal("upcoming"),
       v.literal("live"), 
       v.literal("past")
     ),
     basePackage: v.object({
-      dailyRate: v.number(),
-      totalDays: v.number(),
-      totalBasePrice: v.number(),
+      dailyRate: v.float64(),
+      totalDays: v.float64(),
+      totalBasePrice: v.float64(),
     }),
     guestPackageId: v.id("guestPackageTiers"),
     reviewMode: v.boolean(),
     videoPackage: v.object({
       enabled: v.boolean(),
-      price: v.number(),
+      price: v.float64(),
     }),
     captureLimitId: v.id("captureLimits"),
     addOns: v.optional(v.object({
@@ -196,8 +196,8 @@ export const getAllEvents = query({
       brandedQR: v.boolean(),
     })),
     terms: v.boolean(),
-    price: v.number(),
-    updatedAt: v.number(),
+    price: v.float64(),
+    updatedAt: v.float64(),
     paid: v.boolean(),
   })),
   handler: async (ctx, args) => {
@@ -222,7 +222,7 @@ export const getEventById = query({
     },
     returns: v.union(v.object({
       _id: v.id("events"),
-      _creationTime: v.number(),
+      _creationTime: v.float64(),
       userId: v.id("users"),
       name: v.string(),
       logo: v.optional(v.id("_storage")),
@@ -244,26 +244,28 @@ export const getEventById = query({
       ),
       location: v.object({
         address: v.string(),
+        city: v.string(),
         region: v.string(),
+        postal: v.string(),
         country: v.string(),
       }),
-      startDate: v.number(),
-      endDate: v.number(),
+      startDate: v.float64(),
+      endDate: v.float64(),
       status: v.union(
         v.literal("upcoming"),
         v.literal("live"), 
         v.literal("past")
       ),
       basePackage: v.object({
-        dailyRate: v.number(),
-        totalDays: v.number(),
-        totalBasePrice: v.number(),
+        dailyRate: v.float64(),
+        totalDays: v.float64(),
+        totalBasePrice: v.float64(),
       }),
       guestPackageId: v.id("guestPackageTiers"),
       reviewMode: v.boolean(),
       videoPackage: v.object({
         enabled: v.boolean(),
-        price: v.number(),
+        price: v.float64(),
       }),
       captureLimitId: v.id("captureLimits"),
       addOns: v.optional(v.object({
@@ -271,8 +273,8 @@ export const getEventById = query({
         brandedQR: v.boolean(),
       })),
       terms: v.boolean(),
-      price: v.number(),
-      updatedAt: v.number(),
+      price: v.float64(),
+      updatedAt: v.float64(),
       paid: v.boolean(),
     }), v.null()),
     handler: async (ctx, args) => {

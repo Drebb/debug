@@ -6,8 +6,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SnapClickBangLogo from "./ui/snapclickbang-logo";
 
-
-
 const navigationItems = [
   {
     name: "Dashboard",
@@ -36,11 +34,11 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="p-6 h-screen bg-gray-50">
-      <div className="w-64 text-white flex flex-col h-full rounded-xl" style={{ backgroundColor: '#36A2DB' }}>
+    <div className="h-screen w-64 flex-shrink-0">
+      <div className="w-full text-white flex flex-col h-full rounded-xl" style={{ backgroundColor: '#36A2DB' }}>
         {/* Logo/Brand Section */}
-        <div className="p-2">
-          <SnapClickBangLogo className="w-full h-auto" />
+        <div className="p-4">
+          <SnapClickBangLogo className="w-full h-auto max-w-full" />
         </div>
 
         {/* Navigation Items */}
@@ -73,7 +71,7 @@ export default function Sidebar() {
         </nav>
 
         {/* Divider */}
-        <div className=" border-t border-white/20"></div>
+        <div className="border-t border-white/20 mx-3"></div>
 
         {/* User Info & Logout */}
         <div className="p-3">
