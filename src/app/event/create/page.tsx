@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { format } from "date-fns";
-import { ArrowLeft, CalendarIcon, LayoutDashboard, User, LogOut } from "lucide-react";
+import { ArrowLeft, CalendarIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -37,6 +37,8 @@ import {
 } from "@/components/ui/select";
 
 // Import react-hook-form and Zod
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import Sidebar from "@/components/Sidebar";
 import {
   Form,
   FormControl,
@@ -48,9 +50,7 @@ import {
 import { EventFormSchema, type EventForm } from "@/lib/validations";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import Sidebar from "@/components/Sidebar";
 import { Id } from "../../../../convex/_generated/dataModel";
-import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 const eventTypes = [
   "Music Festival",
@@ -272,18 +272,18 @@ export default function CreateEventPage() {
     <div className="flex h-screen bg-gray-100">
       <Sidebar />
       <main className="flex-1 overflow-auto">
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit, (errors) => {
                 console.log("Form validation errors:", errors);
                 toast.error("Please fix the form errors before submitting");
               })}
-              className="space-y-8"
+              className="space-y-6 sm:space-y-8"
             >
-              <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-                {/* Main Form (Left, spans 2 columns) */}
-                <div className="md:col-span-2">
+              <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+                {/* Main Form (Left, spans 2 columns on large screens) */}
+                <div className="lg:col-span-2">
                   <Card>
                     <CardHeader>
                       <div className="flex items-center gap-4 mb-4">
@@ -291,23 +291,24 @@ export default function CreateEventPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 text-xs sm:text-sm"
                           >
-                            <ArrowLeft className="h-4 w-4" />
-                            Back to Dashboard
+                            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span className="hidden sm:inline">Back to Dashboard</span>
+                            <span className="sm:hidden">Back</span>
                           </Button>
                         </Link>
                       </div>
-                      <CardTitle className="text-3xl font-bold">
+                      <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold">
                         Create New Event
                       </CardTitle>
-                      <CardDescription>
+                      <CardDescription className="text-sm sm:text-base">
                         Fill out the details below to create your event
                       </CardDescription>
                       {Object.keys(form.formState.errors).length > 0 && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
-                          <h4 className="text-red-800 font-medium mb-2">Please fix the following errors:</h4>
-                          <ul className="text-red-700 text-sm space-y-1">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 mt-4">
+                          <h4 className="text-red-800 font-medium mb-2 text-sm sm:text-base">Please fix the following errors:</h4>
+                          <ul className="text-red-700 text-xs sm:text-sm space-y-1">
                             {Object.entries(form.formState.errors).map(([field, error]) => (
                               <li key={field}>
                                 • {field}: {error?.message || "This field is required"}
@@ -317,10 +318,10 @@ export default function CreateEventPage() {
                         </div>
                       )}
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-6">
                       {/* Basic Information */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold border-b pb-2">
+                        <h3 className="text-base sm:text-lg font-semibold border-b pb-2">
                           Basic Information
                         </h3>
 
@@ -329,9 +330,9 @@ export default function CreateEventPage() {
                           name="name"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Event Name *</FormLabel>
+                              <FormLabel className="text-sm sm:text-base">Event Name *</FormLabel>
                               <FormControl>
-                                <Input placeholder="Enter event name" {...field} />
+                                <Input placeholder="Enter event name" {...field} className="text-sm sm:text-base" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -343,19 +344,19 @@ export default function CreateEventPage() {
                           name="eventType"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Event Type *</FormLabel>
+                              <FormLabel className="text-sm sm:text-base">Event Type *</FormLabel>
                               <Select
                                 value={field.value}
                                 onValueChange={field.onChange}
                               >
                                 <FormControl>
-                                  <SelectTrigger>
+                                  <SelectTrigger className="text-sm sm:text-base">
                                     <SelectValue placeholder="Select event type" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
                                   {eventTypes.map((type) => (
-                                    <SelectItem key={type} value={type}>
+                                    <SelectItem key={type} value={type} className="text-sm sm:text-base">
                                       {type}
                                     </SelectItem>
                                   ))}
@@ -369,25 +370,25 @@ export default function CreateEventPage() {
 
                       {/* Location */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold border-b pb-2">
+                        <h3 className="text-base sm:text-lg font-semibold border-b pb-2">
                           Location
                         </h3>
 
                         <AddressAutocomplete form={form} apiKey={GOOGLE_MAPS_API_KEY} />
 
-                        <div className="text-sm text-gray-600 mb-3">
+                        <div className="text-xs sm:text-sm text-gray-600 mb-3">
                           💡 The fields below will be auto-filled when you select a location on the map. You can also edit them manually if needed.
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
                             name="location.city"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>City *</FormLabel>
+                                <FormLabel className="text-sm sm:text-base">City *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Enter city name" {...field} />
+                                  <Input placeholder="Enter city name" {...field} className="text-sm sm:text-base" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -398,9 +399,9 @@ export default function CreateEventPage() {
                             name="location.region"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Region/State *</FormLabel>
+                                <FormLabel className="text-sm sm:text-base">Region/State *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Enter state/province" {...field} />
+                                  <Input placeholder="Enter state/province" {...field} className="text-sm sm:text-base" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -408,15 +409,15 @@ export default function CreateEventPage() {
                           />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
                             name="location.postal"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Postal Code *</FormLabel>
+                                <FormLabel className="text-sm sm:text-base">Postal Code *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Enter postal code" {...field} />
+                                  <Input placeholder="Enter postal code" {...field} className="text-sm sm:text-base" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -427,9 +428,9 @@ export default function CreateEventPage() {
                             name="location.country"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Country *</FormLabel>
+                                <FormLabel className="text-sm sm:text-base">Country *</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Enter country" {...field} />
+                                  <Input placeholder="Enter country" {...field} className="text-sm sm:text-base" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -440,17 +441,17 @@ export default function CreateEventPage() {
 
                       {/* Event Dates */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold border-b pb-2">
+                        <h3 className="text-base sm:text-lg font-semibold border-b pb-2">
                           Event Dates & Times
                         </h3>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
                             name="startDate"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Start Date & Time *</FormLabel>
+                                <FormLabel className="text-sm sm:text-base">Start Date & Time *</FormLabel>
                                 <Popover>
                                   <PopoverTrigger asChild>
                                     <FormControl>
@@ -509,7 +510,7 @@ export default function CreateEventPage() {
                             name="endDate"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>End Date & Time *</FormLabel>
+                                <FormLabel className="text-sm sm:text-base">End Date & Time *</FormLabel>
                                 <Popover>
                                   <PopoverTrigger asChild>
                                     <FormControl>
@@ -621,7 +622,7 @@ export default function CreateEventPage() {
 
                       {/* Guest Package */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold border-b pb-2">
+                        <h3 className="text-base sm:text-lg font-semibold border-b pb-2">
                           Guest Package
                         </h3>
 
@@ -630,7 +631,7 @@ export default function CreateEventPage() {
                           name="guestPackageId"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Guest Package</FormLabel>
+                              <FormLabel className="text-sm sm:text-base">Guest Package</FormLabel>
                               <FormControl>
                                 <div className="grid grid-cols-3 gap-3">
                                   {guestPackages.map((guestPackage) => (
@@ -667,7 +668,7 @@ export default function CreateEventPage() {
 
                       {/* Review Mode */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold border-b pb-2">
+                        <h3 className="text-base sm:text-lg font-semibold border-b pb-2">
                           Review Mode
                         </h3>
 
@@ -731,7 +732,7 @@ export default function CreateEventPage() {
 
                       {/* Video Package Selection */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold border-b pb-2">
+                        <h3 className="text-base sm:text-lg font-semibold border-b pb-2">
                           Media Package
                         </h3>
 
@@ -785,7 +786,7 @@ export default function CreateEventPage() {
 
                       {/* Capture Settings */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold border-b pb-2">
+                        <h3 className="text-base sm:text-lg font-semibold border-b pb-2">
                           Capture Settings
                         </h3>
                         <div>
@@ -794,7 +795,7 @@ export default function CreateEventPage() {
                             name="captureLimitId"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Select Capture Plan *</FormLabel>
+                                <FormLabel className="text-sm sm:text-base">Select Capture Plan *</FormLabel>
                                 <FormControl>
                                   <div className="grid grid-cols-1 gap-3">
                                     {captureLimits
@@ -889,7 +890,7 @@ export default function CreateEventPage() {
 
                       {/* Add-ons */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold border-b pb-2">
+                        <h3 className="text-base sm:text-lg font-semibold border-b pb-2">
                           Add-ons
                         </h3>
 

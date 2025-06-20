@@ -19,11 +19,11 @@ import { Group346Icon } from "@/components/ui/group-346-icon";
 import GuestIcon from "@/components/ui/guest-icon";
 import ImageCropper from "@/components/ui/image-cropper";
 import LocationIcon from "@/components/ui/location-icon";
+import { cn } from "@/lib/utils";
 import { useMutation, useQuery } from "convex/react";
 import {
   Calendar,
   ImageIcon,
-  Plus,
   Trash2,
   Upload,
   X
@@ -120,8 +120,8 @@ export default function EventsPage() {
     eventsToDisplay === undefined
   ) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="min-h-screen bg-white-50 p-3 sm:p-4 lg:pl-2 lg:pr-6 lg:pt-6 lg:pb-6">
+        <div className="w-full px-0 py-4 sm:py-6 lg:py-8 gap-3">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-lg">Loading events...</div>
           </div>
@@ -132,8 +132,8 @@ export default function EventsPage() {
 
   if (currentUser === null) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="min-h-screen bg-white-50 p-3 sm:p-4 lg:pl-2 lg:pr-6 lg:pt-6 lg:pb-6">
+        <div className="w-full px-0 py-4 sm:py-6 lg:py-8 gap-3">
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-4">Please log in</h2>
@@ -148,48 +148,48 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
+    <div className="p-3 sm:p-4 lg:pl-2 lg:pr-6 lg:pt-6 lg:pb-6 bg-gray-50 min-h-screen">
+      <div className="w-full px-0 py-4 sm:py-6 lg:py-8 gap-3">
         {/* Events Section */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           {!allEvents || allEvents.length === 0 ? (
             // Show onboarding hero banner when no events exist
-            <div className="relative mb-8 mt-[120px]">
+            <div className="relative mb-6 sm:mb-8 mt-8 sm:mt-16 lg:mt-[120px]">
               {/* Position the Ellipse behind the mascot */}
               <EllipseSVG className="hidden lg:block absolute top-[1px] right-0 w-full max-w-[700px] md:w-[400px] lg:w-[700px] h-auto z-5 pointer-events-none opacity-100" />
-              <Group346Icon className="hidden lg:block absolute right-[25%] top-1/2 -translate-y-1/2 w-20 h-20 opacity-100 z-10" />
+              <Group346Icon className="hidden lg:block absolute right-[25%] top-1/2 -translate-y-1/2 w-16 lg:w-20 h-16 lg:h-20 opacity-100 z-10" />
               {/* Hero Banner for onboarding or events */}
-              <div className="bg-gradient-to-r from-[#36A2DB] to-[#5E74FF] rounded-2xl p-6 lg:p-8 mb-8 overflow-hidden relative z-0">
+              <div className="bg-gradient-to-r from-[#36A2DB] to-[#5E74FF] rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 overflow-hidden relative z-0">
                 {/* Main content container */}
-                <div className="relative flex flex-row items-center justify-between gap-6">
-                  <div className="flex-1 z-10 max-w-md">
-                    <p className="text-white/90 text-sm lg:text-base mb-4 lg:mb-6 font-medium opacity-50">
+                <div className="relative flex flex-row items-center justify-between gap-4 sm:gap-6">
+                  <div className="flex-1 z-10 max-w-full sm:max-w-md">
+                    <p className="text-white/90 text-xs sm:text-sm lg:text-base mb-3 sm:mb-4 lg:mb-6 font-medium opacity-50">
                       Set the Scene. Share the Clicks. Make an Event!
                     </p>
                     <Link href="/event/create">
-                      <Button className="bg-white hover:bg-gray-50 text-orange-500 hover:text-orange-600 px-6 py-3 rounded-lg font-medium shadow-md transition-all duration-200">
+                      <Button className="bg-white hover:bg-gray-50 text-orange-500 hover:text-orange-600 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-sm sm:text-base font-medium shadow-md transition-all duration-200">
                         Create Your First Event
                       </Button>
                     </Link>
                   </div>
                 </div>
               </div>
-              <Group1Icon className="hidden lg:block absolute top-0 right-[5%] w-[260px] h-[260px] -translate-y-1/4 z-20 pointer-events-none" />
+              <Group1Icon className="hidden lg:block absolute top-0 right-[5%] w-[200px] lg:w-[260px] h-[200px] lg:h-[260px] -translate-y-1/4 z-20 pointer-events-none" />
             </div>
           ) : (
             // Show events management interface when events exist (even if current filter shows none)
             <div className="bg-white rounded-lg border">
               {/* Header with title, filter tabs, and create button */}
-              <div className="p-6 border-b">
-                <div className="flex flex-row items-center justify-between gap-4">
+              <div className="p-4 sm:p-6 border-b">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Events</h2>
-                    <p className="text-gray-600 text-sm">Manage all your events in one place</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Events</h2>
+                    <p className="text-gray-600 text-xs sm:text-sm">Manage all your events in one place</p>
                   </div>
                   
-                  <div className="flex flex-row items-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
                     {/* Filter slider */}
-                    <div className="relative bg-gray-100 rounded-lg p-1 flex h-10 w-80">
+                    <div className="relative bg-gray-100 rounded-lg p-1 flex h-10 w-full sm:w-80">
                       {/* Sliding background */}
                       <div 
                         className="absolute top-1 bottom-1 bg-white rounded-md shadow-sm transition-all duration-200 ease-in-out"
@@ -198,58 +198,35 @@ export default function EventsPage() {
                           left: `${
                             statusFilter === "all" ? 0 :
                             statusFilter === "live" ? 25 :
-                            statusFilter === "upcoming" ? 50 : 75
+                            statusFilter === "upcoming" ? 50 :
+                            75
                           }%`,
                         }}
                       />
-                      
                       {/* Filter buttons */}
-                      <button
-                        onClick={() => setStatusFilter("all")}
-                        className={`relative z-10 px-1 py-1 text-sm font-medium rounded-md transition-colors duration-200 flex-1 text-center overflow-hidden ${
-                          statusFilter === "all"
-                            ? "text-[#414651]"
-                            : "text-[#717680] hover:text-[#414651]"
-                        }`}
-                      >
-                        All Events
-                      </button>
-                      <button
-                        onClick={() => setStatusFilter("live")}
-                        className={`relative z-10 px-1 py-1 text-sm font-medium rounded-md transition-colors duration-200 flex-1 text-center overflow-hidden ${
-                          statusFilter === "live"
-                            ? "text-[#414651]"
-                            : "text-[#717680] hover:text-[#414651]"
-                        }`}
-                      >
-                        Active
-                      </button>
-                      <button
-                        onClick={() => setStatusFilter("upcoming")}
-                        className={`relative z-10 px-1 py-1 text-sm font-medium rounded-md transition-colors duration-200 flex-1 text-center overflow-hidden ${
-                          statusFilter === "upcoming"
-                            ? "text-[#414651]"
-                            : "text-[#717680] hover:text-[#414651]"
-                        }`}
-                      >
-                        Upcoming
-                      </button>
-                      <button
-                        onClick={() => setStatusFilter("past")}
-                        className={`relative z-10 px-1 py-1 text-sm font-medium rounded-md transition-colors duration-200 flex-1 text-center overflow-hidden ${
-                          statusFilter === "past"
-                            ? "text-[#414651]"
-                            : "text-[#717680] hover:text-[#414651]"
-                        }`}
-                      >
-                        Past
-                      </button>
+                      {(["all", "live", "upcoming", "past"] as EventStatus[]).map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => setStatusFilter(status)}
+                          className={cn(
+                            "relative z-10 flex-1 text-center py-1 px-2 text-xs sm:text-sm font-medium transition-colors duration-200 rounded-md",
+                            statusFilter === status
+                              ? "text-gray-900"
+                              : "text-gray-500 hover:text-gray-700"
+                          )}
+                        >
+                          {status === "all" ? "All" :
+                           status === "live" ? "Live" :
+                           status === "upcoming" ? "Upcoming" :
+                           "Past"}
+                        </button>
+                      ))}
                     </div>
                     
-                    <Link href="/event/create">
-                      <Button className="flex items-center gap-2 bg-gradient-to-r from-[#F04A35] to-[#F07935] hover:from-[#E03E2A] hover:to-[#E06A30] text-white">
-                        <Plus className="h-4 w-4" />
-                        Create Event
+                    {/* Create Event Button */}
+                    <Link href="/event/create" className="w-full sm:w-auto">
+                      <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm">
+                        + Create Event
                       </Button>
                     </Link>
                   </div>
@@ -261,28 +238,28 @@ export default function EventsPage() {
 
         {/* Events List - Show when there are events OR when filtering shows empty results */}
         {(eventsToDisplay.length > 0 || (statusFilter !== "all" && allEvents && allEvents.length > 0)) && (
-          <div className="p-6 bg-white rounded-lg border">
+          <div className="bg-white rounded-lg border">
             {eventsToDisplay.length === 0 ? (
-              <div className="text-center py-12">
-                <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-lg font-medium text-muted-foreground mb-2">
+              <div className="text-center py-8 sm:py-12 px-4 sm:px-6">
+                <Calendar className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-base sm:text-lg font-medium text-muted-foreground mb-2">
                   {statusFilter === "all"
                     ? "No events found"
                     : `No ${statusFilter} events found`}
                 </p>
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4">
                   {statusFilter === "all"
                     ? "Get started by creating your first event"
                     : `You don't have any ${statusFilter} events at the moment. Try selecting a different filter or create a new event.`}
                 </p>
                 {statusFilter === "all" && (
                   <Link href="/event/create">
-                    <Button>Create Your First Event</Button>
+                    <Button className="w-full sm:w-auto">Create Your First Event</Button>
                   </Link>
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 p-4 sm:p-6">
                 {eventsToDisplay.map((event) => {
                   return <EventCard key={event._id} event={event} userId={userId} onDelete={handleDeleteEvent} onView={handleViewEvent} />;
                 })}
@@ -471,14 +448,14 @@ function EventCard({
       </div>
 
       {/* Event Content */}
-      <div className="p-4">
+      <div className="p-3 sm:p-4">
         {/* Date and Status */}
-        <div className="flex flex-row items-center justify-between mb-3">
-          <span className="text-sm" style={{ color: "#3696D2", fontWeight: "500" }}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3">
+          <span className="text-xs sm:text-sm font-medium" style={{ color: "#3696D2" }}>
             {new Date(event.startDate).toLocaleDateString('en-US', {
-              weekday: 'long',
+              weekday: 'short',
               day: 'numeric',
-              month: 'long'
+              month: 'short'
             })} - {new Date(event.startDate).toLocaleTimeString('en-US', {
               hour: 'numeric',
               minute: '2-digit',
@@ -486,7 +463,7 @@ function EventCard({
             })}
           </span>
           <span
-            className={`px-2 py-1 rounded-full text-xs font-medium ${
+            className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${
               event.status === "upcoming"
                 ? "bg-blue-100 text-blue-600"
                 : event.status === "live"
@@ -499,27 +476,27 @@ function EventCard({
         </div>
 
         {/* Event Title */}
-        <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2">
+        <h3 className="font-semibold text-base sm:text-lg text-gray-900 mb-2 line-clamp-2">
           {event.name}
         </h3>
 
         {/* Location */}
-        <p className="text-gray-600 font-medium text-sm mb-3 flex flex-row items-center gap-1">
-          <LocationIcon />
-          {event.location.city}, {event.location.region}
+        <p className="text-gray-600 font-medium text-xs sm:text-sm mb-3 flex flex-row items-center gap-1">
+          <LocationIcon className="shrink-0" />
+          <span className="truncate">{event.location.city}, {event.location.region}</span>
         </p>
 
         {/* Event Stats */}
-        <div className="flex flex-row items-center gap-3 mb-4">
-          <div className="flex flex-row items-center gap-2 px-3 py-2 bg-white border rounded-lg" style={{ borderColor: '#766E6E' }}>
-            <GuestIcon />
-            <span className="text-sm font-medium text-gray-700">
+        <div className="flex flex-row items-center gap-2 sm:gap-3 mb-4">
+          <div className="flex flex-row items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-white border rounded-lg flex-1" style={{ borderColor: '#766E6E' }}>
+            <GuestIcon className="shrink-0" />
+            <span className="text-xs sm:text-sm font-medium text-gray-700 truncate">
               {isLoading ? "..." : guestCount.toLocaleString()}
             </span>
           </div>
-          <div className="flex flex-row items-center gap-2 px-3 py-2 bg-white border rounded-lg" style={{ borderColor: '#766E6E' }}>
-            <CameraIcon />
-            <span className="text-sm font-medium text-gray-700">
+          <div className="flex flex-row items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-white border rounded-lg flex-1" style={{ borderColor: '#766E6E' }}>
+            <CameraIcon className="shrink-0" />
+            <span className="text-xs sm:text-sm font-medium text-gray-700 truncate">
               {isLoading ? "..." : uploadCount.toLocaleString()}
             </span>
           </div>
@@ -531,9 +508,10 @@ function EventCard({
             variant="outline"
             size="sm"
             onClick={() => onView(event._id)}
-            className="flex-1"
+            className="flex-1 text-xs sm:text-sm"
           >
-            Manage Add-Ons
+            <span className="hidden sm:inline">Manage Add-Ons</span>
+            <span className="sm:hidden">Manage</span>
           </Button>
           
           <AlertDialog>
@@ -541,28 +519,28 @@ function EventCard({
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 px-3"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 px-2 sm:px-3"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="max-w-[90vw] sm:max-w-lg">
               <AlertDialogHeader>
-                <AlertDialogTitle>
+                <AlertDialogTitle className="text-base sm:text-lg">
                   Are you absolutely sure?
                 </AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogDescription className="text-sm">
                   This action cannot be undone. This will
                   permanently delete the event &quot;{event.name}
                   &quot; and all associated data including guests
                   and uploads.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => onDelete(event._id)}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
                 >
                   Delete Event
                 </AlertDialogAction>

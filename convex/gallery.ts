@@ -1,19 +1,19 @@
-import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { 
-  verifyEventOwnership, 
-  verifyGalleryOwnership, 
-  validateWithZod,
-  generateGalleryFilename,
-  getFileMetadataWithUrl
+import { mutation, query } from "./_generated/server";
+import {
+    generateGalleryFilename,
+    getFileMetadataWithUrl,
+    validateWithZod,
+    verifyEventOwnership,
+    verifyGalleryOwnership
 } from "./utils";
 
 // Import Zod schemas for validation
-import { 
-  CreateGalleryItemSchema,
-  DeleteGalleryItemSchema,
-  GetGalleryByEventSchema,
-  type CreateGalleryItem
+import {
+    CreateGalleryItemSchema,
+    DeleteGalleryItemSchema,
+    GetGalleryByEventSchema,
+    type CreateGalleryItem
 } from "../src/lib/validations";
 
 export const generateUploadURL = mutation({

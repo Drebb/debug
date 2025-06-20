@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { FormControl, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { UseFormReturn } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { MapPin, Loader2, X } from "lucide-react";
+import { FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Loader2, MapPin, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 
 declare global {
@@ -241,17 +241,17 @@ export function AddressAutocomplete({ form, apiKey }: AddressAutocompleteProps) 
         <div className="space-y-2">
           {displayAddress ? (
             <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-green-800">Selected Location:</p>
-                  <p className="text-sm text-green-700">{displayAddress}</p>
+              <div className="flex flex-col sm:flex-row items-start justify-between gap-2">
+                <div className="flex-1">
+                  <p className="text-xs sm:text-sm font-medium text-green-800">Selected Location:</p>
+                  <p className="text-xs sm:text-sm text-green-700 break-words">{displayAddress}</p>
                 </div>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={openMapModal}
-                  className="text-green-600 hover:text-green-800"
+                  className="text-green-600 hover:text-green-800 text-xs sm:text-sm shrink-0"
                 >
                   Change
                 </Button>
@@ -262,10 +262,11 @@ export function AddressAutocomplete({ form, apiKey }: AddressAutocompleteProps) 
               type="button"
               variant="outline"
               onClick={openMapModal}
-              className="w-full h-12 border-dashed border-2 hover:border-solid"
+              className="w-full h-10 sm:h-12 border-dashed border-2 hover:border-solid text-sm sm:text-base"
             >
-              <MapPin className="h-4 w-4 mr-2" />
-              Click to set location on map
+              <MapPin className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+              <span className="hidden sm:inline">Click to set location on map</span>
+              <span className="sm:hidden">Set location</span>
             </Button>
           )}
         </div>
@@ -274,35 +275,37 @@ export function AddressAutocomplete({ form, apiKey }: AddressAutocompleteProps) 
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-4xl h-[600px] flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg w-full max-w-4xl h-[90vh] sm:h-[600px] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Select Your Location</h3>
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b">
+              <h3 className="text-base sm:text-lg font-semibold">Select Your Location</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={closeMapModal}
+                className="p-1 sm:p-2"
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
 
             {/* Search bar */}
-            <div className="p-4 border-b">
-              <div className="flex gap-2">
+            <div className="p-3 sm:p-4 border-b">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   placeholder="Search for an address..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !isLoading && handleSearch()}
-                  className="flex-1"
+                  className="flex-1 text-sm sm:text-base"
                   disabled={isLoading}
                 />
                 <Button 
                   onClick={handleSearch}
                   disabled={isLoading}
                   variant="outline"
+                  className="w-full sm:w-auto text-sm sm:text-base"
                 >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -314,12 +317,12 @@ export function AddressAutocomplete({ form, apiKey }: AddressAutocompleteProps) 
             </div>
 
             {/* Map container */}
-            <div className="flex-1 relative">
+            <div className="flex-1 relative min-h-0">
               {!isMapReady && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
                   <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-2" />
-                    <p className="text-gray-600">Loading map...</p>
+                    <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-blue-500 mx-auto mb-2" />
+                    <p className="text-sm sm:text-base text-gray-600">Loading map...</p>
                   </div>
                 </div>
               )}
@@ -331,27 +334,29 @@ export function AddressAutocomplete({ form, apiKey }: AddressAutocompleteProps) 
 
             {/* Selected location display */}
             {selectedLocation && (
-              <div className="p-4 border-t bg-gray-50">
-                <p className="text-sm font-medium text-gray-700">Selected Location:</p>
-                <p className="text-sm text-gray-600">{selectedLocation.formattedAddress}</p>
+              <div className="p-3 sm:p-4 border-t bg-gray-50">
+                <p className="text-xs sm:text-sm font-medium text-gray-700">Selected Location:</p>
+                <p className="text-xs sm:text-sm text-gray-600 break-words">{selectedLocation.formattedAddress}</p>
               </div>
             )}
 
             {/* Footer */}
-            <div className="flex justify-between items-center p-4 border-t">
-              <p className="text-sm text-gray-500">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 sm:p-4 border-t gap-3 sm:gap-0">
+              <p className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
                 Click anywhere on the map to set your location
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   onClick={closeMapModal}
+                  className="flex-1 sm:flex-none text-sm"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={confirmLocation}
                   disabled={!selectedLocation}
+                  className="flex-1 sm:flex-none text-sm"
                 >
                   Confirm Location
                 </Button>

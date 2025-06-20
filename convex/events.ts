@@ -6,11 +6,11 @@ import { validateWithZod, verifyEventOwnership } from "./utils";
 
 // Import Zod schemas for validation
 import {
-    CreateEventSchema,
-    DeleteEventSchema,
-    GetEventByIdSchema,
-    GetEventsByUserSchema,
-    UpdateEventSchema
+  CreateEventSchema,
+  DeleteEventSchema,
+  GetEventByIdSchema,
+  GetEventsByUserSchema,
+  UpdateEventSchema
 } from "../src/lib/validations";
 
 // Create event (Create new event) - Simplified version

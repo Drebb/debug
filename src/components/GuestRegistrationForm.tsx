@@ -1,28 +1,28 @@
 "use client";
 
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import { useMutation } from "convex/react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import { api } from "../../convex/_generated/api";
 
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 
 import { GuestFormSchema, type GuestForm } from "@/lib/validations";
 
@@ -72,13 +72,13 @@ export default function GuestRegistrationForm({
 
   return (
     <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Join the Event</CardTitle>
-        <CardDescription>
+      <CardHeader className="text-center px-4 sm:px-6">
+        <CardTitle className="text-lg sm:text-xl">Join the Event</CardTitle>
+        <CardDescription className="text-sm sm:text-base">
           Register to start capturing memories at this event
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 sm:px-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -86,9 +86,13 @@ export default function GuestRegistrationForm({
               name="nickname"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nickname *</FormLabel>
+                  <FormLabel className="text-sm sm:text-base">Nickname *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter your nickname" {...field} />
+                    <Input 
+                      placeholder="Enter your nickname" 
+                      {...field} 
+                      className="text-sm sm:text-base"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -100,12 +104,13 @@ export default function GuestRegistrationForm({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email (optional)</FormLabel>
+                  <FormLabel className="text-sm sm:text-base">Email (optional)</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
                       placeholder="your.email@example.com"
                       {...field}
+                      className="text-sm sm:text-base"
                     />
                   </FormControl>
                   <FormMessage />
@@ -118,9 +123,13 @@ export default function GuestRegistrationForm({
               name="socialHandle"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Social Handle (optional)</FormLabel>
+                  <FormLabel className="text-sm sm:text-base">Social Handle (optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="@yourusername" {...field} />
+                    <Input 
+                      placeholder="@yourusername" 
+                      {...field}
+                      className="text-sm sm:text-base"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -129,7 +138,7 @@ export default function GuestRegistrationForm({
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full text-sm sm:text-base py-2 sm:py-3"
               disabled={form.formState.isSubmitting}
             >
               {form.formState.isSubmitting ? "Registering..." : "Join Event"}
