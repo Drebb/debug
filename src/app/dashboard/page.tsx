@@ -101,30 +101,30 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="pl-2 pr-6 pt-6 pb-6 bg-gray-50 min-h-screen">
-      <div className="w-full px-0 py-8 gap-3">
+    <div className="p-3 sm:p-4 lg:pl-2 lg:pr-6 lg:pt-6 lg:pb-6 bg-gray-50 min-h-screen">
+      <div className="w-full px-0 py-4 sm:py-6 lg:py-8 gap-3">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
               Welcome back, {currentUser.first_name || "Kobe"}
             </h1>
           </div>
         </div>
 
         {/* Analytics Cards */}
-        <div className="space-y-6 mb-8">
+        <div className="space-y-4 sm:space-y-6 mb-6 sm:mb-8">
           {/* First Row - 3 cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Live Events */}
             <div className="p-[2px] rounded-[12px] bg-gradient-to-r from-[#F04A35] to-[#FF9F1C]">
               <Card className="bg-white">
-                <CardContent className="p-4 flex items-start">
-                  <div className="flex flex-row items-start gap-4 w-full">
-                    <LiveEventsIcon />
-                    <div>
-                      <p className="text-[16px] font-semibold font-inter text-[#535862] mb-1">Live Events</p>
-                      <div className="text-[32px] font-medium font-inter text-[#000000]">
+                <CardContent className="p-3 sm:p-4 flex items-start">
+                  <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 w-full">
+                    <LiveEventsIcon className="shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm sm:text-[16px] font-semibold font-inter text-[#535862] mb-1">Live Events</p>
+                      <div className="text-2xl sm:text-[32px] font-medium font-inter text-[#000000]">
                         {allEvents?.filter(event => event.status === "live").length || 0}
                       </div>
                     </div>
@@ -135,12 +135,12 @@ export default function Dashboard() {
 
             {/* Total Snaps */}
             <Card className="">
-              <CardContent className="p-4 flex items-start">
-                <div className="flex flex-row items-start gap-4 w-full">
-                  <TotalSnapsIcon />
-                  <div>
-                    <p className="text-[16px] font-semibold font-inter text-[#535862] mb-1">Total Snaps</p>
-                    <div className="text-[32px] font-medium font-inter text-[#000000]">
+              <CardContent className="p-3 sm:p-4 flex items-start">
+                <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 w-full">
+                  <TotalSnapsIcon className="shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm sm:text-[16px] font-semibold font-inter text-[#535862] mb-1">Total Snaps</p>
+                    <div className="text-2xl sm:text-[32px] font-medium font-inter text-[#000000]">
                       {uploadCount?.toLocaleString() || 0}
                     </div>
                   </div>
@@ -149,13 +149,13 @@ export default function Dashboard() {
             </Card>
 
             {/* Total Event Visitors */}
-            <Card className="">
-              <CardContent className="p-4 flex items-start">
-                <div className="flex flex-row items-start gap-4 w-full">
-                  <TotalEventsIcon />
-                  <div>
-                    <p className="text-[16px] font-semibold font-inter text-[#535862] mb-1">Total Event Visitors</p>
-                    <div className="text-[32px] font-medium font-inter text-[#000000]">
+            <Card className="sm:col-span-2 lg:col-span-1">
+              <CardContent className="p-3 sm:p-4 flex items-start">
+                <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 w-full">
+                  <TotalEventsIcon className="shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm sm:text-[16px] font-semibold font-inter text-[#535862] mb-1">Total Event Visitors</p>
+                    <div className="text-2xl sm:text-[32px] font-medium font-inter text-[#000000]">
                       {guestCount?.toLocaleString() || 0}
                     </div>
                   </div>
@@ -165,15 +165,15 @@ export default function Dashboard() {
           </div>
 
           {/* Second Row - 2 wider cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Total Events */}
             <Card className="">
-              <CardContent className="p-4 flex items-start">
-                <div className="flex flex-row items-start gap-4 w-full">
-                  <TotalEventsIcon />
-                  <div>
-                    <p className="text-[16px] font-semibold font-inter text-[#535862] mb-1">Total Events</p>
-                    <div className="text-[32px] font-medium font-inter text-[#000000]">
+              <CardContent className="p-3 sm:p-4 flex items-start">
+                <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 w-full">
+                  <TotalEventsIcon className="shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm sm:text-[16px] font-semibold font-inter text-[#535862] mb-1">Total Events</p>
+                    <div className="text-2xl sm:text-[32px] font-medium font-inter text-[#000000]">
                       {eventCount || 0}
                     </div>
                   </div>
@@ -183,12 +183,12 @@ export default function Dashboard() {
 
             {/* Total Guests */}
             <Card className="">
-              <CardContent className="p-4 flex items-start">
-                <div className="flex flex-row items-start gap-4 w-full">
-                  <TotalGuestsIcon />
-                  <div>
-                    <p className="text-[16px] font-semibold font-inter text-[#535862] mb-1">Total Guests</p>
-                    <div className="text-[32px] font-medium font-inter text-[#000000]">
+              <CardContent className="p-3 sm:p-4 flex items-start">
+                <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 w-full">
+                  <TotalGuestsIcon className="shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm sm:text-[16px] font-semibold font-inter text-[#535862] mb-1">Total Guests</p>
+                    <div className="text-2xl sm:text-[32px] font-medium font-inter text-[#000000]">
                       {guestCount?.toLocaleString() || 0}
                     </div>
                   </div>
@@ -199,27 +199,27 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions Section or Onboarding Hero */}
-        <div className="relative mb-8 mt-[120px]">
+        <div className="relative mb-6 sm:mb-8 mt-8 sm:mt-16 lg:mt-[120px]">
           {/* Position the Ellipse behind the mascot */}
           <EllipseSVG className="hidden lg:block absolute top-[1px] right-0 w-full max-w-[700px] md:w-[400px] lg:w-[700px] h-auto z-5 pointer-events-none opacity-100" />
-          <Group346Icon className="hidden lg:block absolute right-[20%] top-1/2 -translate-y-1/2 w-20 h-20 opacity-100 z-10" />
+          <Group346Icon className="hidden lg:block absolute right-[20%] top-1/2 -translate-y-1/2 w-16 lg:w-20 h-16 lg:h-20 opacity-100 z-10" />
           {/* Hero Banner for onboarding or events */}
-          <div className="bg-gradient-to-r from-[#36A2DB] to-[#5E74FF] rounded-2xl p-6 lg:p-8 mb-8 overflow-hidden relative z-0">
+          <div className="bg-gradient-to-r from-[#36A2DB] to-[#5E74FF] rounded-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 overflow-hidden relative z-0">
             {/* Main content container */}
-            <div className="relative flex flex-row items-center justify-between gap-6">
-              <div className="flex-1 z-10 max-w-md">
-                <p className="text-white/90 text-sm lg:text-base mb-4 lg:mb-6 font-medium opacity-50">
+            <div className="relative flex flex-row items-center justify-between gap-4 sm:gap-6">
+              <div className="flex-1 z-10 max-w-full sm:max-w-md">
+                <p className="text-white/90 text-xs sm:text-sm lg:text-base mb-3 sm:mb-4 lg:mb-6 font-medium opacity-50">
                   Set the Scene. Share the Clicks. Make an Event!
                 </p>
                 <Link href="/event/create">
-                  <Button className="bg-white hover:bg-gray-50 text-orange-500 hover:text-orange-600 px-6 py-3 rounded-lg font-medium shadow-md transition-all duration-200">
-                    Create Your First Event
+                  <Button className="bg-white hover:bg-gray-50 text-orange-500 hover:text-orange-600 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-sm sm:text-base font-medium shadow-md transition-all duration-200">
+                    {eventCount && eventCount > 0 ? "+ Create Another Event" : "Create Your First Event"}
                   </Button>
                 </Link>
               </div>
             </div>
           </div>
-          <Group1Icon className="hidden lg:block absolute top-0 right-[5%] w-[260px] h-[260px] -translate-y-1/4 z-20 pointer-events-none" />
+          <Group1Icon className="hidden lg:block absolute top-0 right-[5%] w-[200px] lg:w-[260px] h-[200px] lg:h-[260px] -translate-y-1/4 z-20 pointer-events-none" />
         </div>
       </div>
     </div>

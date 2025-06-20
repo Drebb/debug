@@ -6,11 +6,11 @@ import { validateWithZod, verifyEventOwnership } from "./utils";
 
 // Import Zod schemas for validation
 import {
-    CreateEventSchema,
-    DeleteEventSchema,
-    GetEventByIdSchema,
-    GetEventsByUserSchema,
-    UpdateEventSchema
+  CreateEventSchema,
+  DeleteEventSchema,
+  GetEventByIdSchema,
+  GetEventsByUserSchema,
+  UpdateEventSchema
 } from "../src/lib/validations";
 
 // Create event (Create new event) - Simplified version
@@ -244,7 +244,9 @@ export const getEventById = query({
       ),
       location: v.object({
         address: v.string(),
+        city: v.string(),
         region: v.string(),
+        postal: v.string(),
         country: v.string(),
       }),
       startDate: v.number(),
